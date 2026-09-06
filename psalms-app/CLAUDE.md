@@ -50,9 +50,12 @@ containing 440 printed pages transcribed from the official source.
 
 ## 4. Critical Build & Packaging Rules
 
-- **Never use PowerShell `Compress-Archive`.** It writes Windows backslash path
-  separators which break Linux web hosts like Netlify. Always package with
-  `tools/package.mjs` via `npm run package`.
+- **Do not build deploy archives by hand.** The app is deployed by GitHub Actions,
+  which runs `npm ci && npm run build` in CI and publishes `psalms-app/dist/` to
+  GitHub Pages. Zipping, extracting and flattening are no longer part of the
+  process. (`npm run package` still exists for an offline hand-off copy; if you ever
+  use it, note that PowerShell `Compress-Archive` must never be used — it writes
+  Windows backslash separators that break Linux hosts.)
 - **Preserve `base: './'` in `vite.config.ts`** so asset paths stay relative.
 - **Test suites:** `npm run check:all` runs all 5 suites — calendar, office routing,
   canticle fidelity, service worker caching, and index resolution.
@@ -60,7 +63,10 @@ containing 440 printed pages transcribed from the official source.
 ## 5. Key Paths & Commands
 
 - **Project root:** `C:\Users\ERIC\Downloads\Claude Code\the four skills\psalms-app`
-  (not a git repository as of 2026-09-02).
+- **Git repository root:** one level up,
+  `C:\Users\ERIC\Downloads\Claude Code\the four skills` — it holds both
+  `psalms-app/` and `tools/`. Run all git commands from there, not from
+  `psalms-app/`.
 - **npm scripts** (`package.json`):
   - `npm run dev` — Vite dev server
   - `npm run build` — `fonts` + `tsc -b` + `vite build` + `tools/sw-build.mjs`
@@ -70,3 +76,27 @@ containing 440 printed pages transcribed from the official source.
   - `npm run fonts` — regenerate self-hosted font subsets (`tools/fonts.mjs`)
   - Data-pipeline scripts (`data`, `plates`, `icons`, `canticles`, `lines`) invoke
     tools one directory up (`../tools/…`).
+
+## 6. Deployment — read this before finishing any change
+
+The project is a git repository whose remote is
+`https://github.com/aboagyeeric280-dotcom/psalms-canticles`, and the live app is
+**https://aboagyeeric280-dotcom.github.io/psalms-canticles/**.
+
+Editing files on disk changes nothing that anyone can see. A change is only
+published once it is committed and pushed. **After completing a change the user has
+approved, finish the job**: run `npm run check:all`, then from the repository root
+
+```bash
+git add -A
+git commit -m "<what changed>"
+git push
+```
+
+GitHub Actions (`.github/workflows/deploy.yml`) then builds and publishes the app,
+taking roughly a minute. Do not commit `dist/` — it is gitignored and rebuilt in CI.
+
+`base: './'` in `vite.config.ts`, and the relative `start_url`, `scope` and `id` in
+`public/manifest.json`, exist because Pages serves the app from the
+`/psalms-canticles/` subfolder. Changing any of them to an absolute path breaks
+styling, the manifest and offline caching. See `DEPLOYING.md` at the repository root.
