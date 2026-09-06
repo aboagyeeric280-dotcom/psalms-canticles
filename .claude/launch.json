@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "psalms-app",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "psalms-app", "--", "--port", "5183", "--strictPort"],
+      "port": 5183
+    },
+    {
+      "name": "psalms-app-prod",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "preview", "--prefix", "psalms-app", "--", "--port", "5190", "--strictPort"],
+      "port": 5190
+    }
+  ]
+}

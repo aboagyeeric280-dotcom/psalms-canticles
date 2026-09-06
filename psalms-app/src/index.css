@@ -1,0 +1,1871 @@
+/* =========================================================================
+   Daily Psalms and Canticles — design system
+
+   Cream, deep navy and antique gold, with crimson kept for the rubrics as
+   the books themselves do. Three themes, all driven by custom properties.
+
+   Two colours run in parallel and must not be confused: --accent is the
+   app's own gold, used for anything interactive, and --lit is the colour of
+   the day's vesture, which belongs to the liturgical header, the badges and
+   the calendar. A green Sunday should not turn the buttons green.
+   ========================================================================= */
+
+/* Self-hosted so the app still looks like itself with no network. */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal; font-weight: 400; font-display: swap;
+  src: url('/fonts/eb-garamond-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic; font-weight: 400; font-display: swap;
+  src: url('/fonts/eb-garamond-latin-400-italic.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal; font-weight: 600; font-display: swap;
+  src: url('/fonts/eb-garamond-latin-600-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Cinzel';
+  font-style: normal; font-weight: 600; font-display: swap;
+  src: url('/fonts/cinzel-latin-600-normal.woff2') format('woff2');
+}
+
+:root {
+  /* --- typography ----------------------------------------------------- */
+  --font-display: 'Cinzel', 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  --font-serif: 'EB Garamond', 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua',
+    Palatino, 'Hoefler Text', Georgia, 'Times New Roman', serif;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --font-reader: var(--font-serif);
+
+  --reader-size: 19px;
+  --reader-leading: 1.65;
+
+  /* --- spacing / shape ------------------------------------------------ */
+  --gap: 1rem;
+  --radius: 14px;
+  --radius-sm: 10px;
+  --measure: 34rem;
+  --shell-max: 46rem;
+
+  /* --- light (default): warm ivory, deep navy, antique gold ----------- */
+  --bg: #faf8f5;
+  --bg-raised: #fffefc;
+  --bg-sunken: #f2eee7;
+  --ink: #182848;
+  --ink-soft: #4a5670;
+  --ink-faint: #697288;      /* 4.5:1 on the ivory — these carry labels  */
+  --rule: #e6e0d5;
+  --rule-strong: #d3cabb;
+  --accent: #87692b;          /* gold, darkened to 4.85:1 so it reads as text */
+  --accent-line: #c5a059;     /* the gold of borders and rules             */
+  --accent-ink: #fffefc;
+  --accent-wash: #f7f1e3;
+  --rubric: #9e2a2b;          /* crimson, for antiphons and verse marks    */
+  --choir-b: #656d7e;      /* 4.9:1 — a whole verse of body text  */
+  --shadow: 0 4px 20px -2px rgba(24, 40, 72, .05), 0 1px 2px rgba(24, 40, 72, .04);
+  --shadow-lift: 0 10px 28px -6px rgba(24, 40, 72, .12), 0 2px 6px rgba(24, 40, 72, .06);
+  --overlay: rgba(24, 40, 72, .34);
+
+  /* --- the day's vesture ---------------------------------------------- */
+  /* Named once here so the header, the calendar and the reader all draw on
+     the same six colours. Keep them off anything interactive: see the note
+     at the top of this file. */
+  --lit-white: #96762a;
+  --lit-red: #8e2f2a;
+  --lit-green: #3d6b46;
+  --lit-violet: #6b2f6e;
+  --lit-rose: #b0637f;
+  --lit-black: #3a3a3a;
+  /* What the reader uses when the day's colour is switched off: the same
+     crimson the book prints its rubrics in, so nothing moves. */
+  --lit-day: var(--rubric);
+}
+
+:root[data-theme='sepia'] {
+  --bg: #f4ecdd;
+  --bg-raised: #fbf5e9;
+  --bg-sunken: #eae0cb;
+  /* 13.5:1 on the sepia ground. The psalter is read for an hour at a time and
+     this is the one theme whose ink sat below that; it was 12.1:1. */
+  --ink: #2a2216;
+  --ink-soft: #5d5040;
+  --ink-faint: #756852;
+  --rule: #ddd0b6;
+  --rule-strong: #c9b997;
+  --accent: #836327;
+  --accent-line: #bc9750;
+  --accent-ink: #fbf5e9;
+  --accent-wash: #f0e6d0;
+  --rubric: #96302c;
+  --choir-b: #72634d;
+  --shadow: 0 4px 20px -2px rgba(60, 40, 15, .06), 0 1px 2px rgba(60, 40, 15, .05);
+  --shadow-lift: 0 10px 28px -6px rgba(60, 40, 15, .14), 0 2px 6px rgba(60, 40, 15, .07);
+  --overlay: rgba(51, 41, 29, .40);
+}
+
+/* Midnight slate rather than pure black: the gold and crimson need something
+   to sit on, and true black flattens them. */
+:root[data-theme='dark'] {
+  --bg: #111622;
+  --bg-raised: #1a2233;
+  --bg-sunken: #151c2b;
+  --ink: #ede8de;
+  --ink-soft: #b3b9c6;
+  --ink-faint: #7f8797;
+  --rule: #263048;
+  --rule-strong: #35415c;
+  --accent: #d9b978;
+  --accent-line: #c5a059;
+  --accent-ink: #111622;
+  --accent-wash: #1f2739;
+  --rubric: #d98a8a;
+  --choir-b: #98a1b4;
+  --shadow: 0 4px 20px -2px rgba(0, 0, 0, .38), 0 1px 2px rgba(0, 0, 0, .3);
+  --shadow-lift: 0 12px 32px -6px rgba(0, 0, 0, .55), 0 2px 8px rgba(0, 0, 0, .4);
+  --overlay: rgba(6, 9, 16, .66);
+
+  /* lifted off the slate, as the accents are */
+  --lit-white: #d8bb70;
+  --lit-red: #dd8c86;
+  --lit-green: #86bd93;
+  --lit-violet: #c79bd0;
+  --lit-rose: #e0a3b6;
+  --lit-black: #9a9a9a;
+}
+
+:root[data-font='sans'] { --font-reader: var(--font-sans); }
+
+/* ---------------------------------------------------------------- reset */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+button, input, select { font: inherit; color: inherit; }
+button { background: none; border: 0; cursor: pointer; }
+/* No 300ms double-tap wait, and a tap flash we chose rather than inherited. */
+button, a, [role='button'] { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+/* ---------------------------------------------------------------- shell */
+.app {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.shell {
+  width: 100%;
+  max-width: var(--shell-max);
+  margin: 0 auto;
+  padding: 0 clamp(1rem, 4vw, 2rem);
+}
+
+/* --------------------------------------------------------------- header */
+.hdr {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: color-mix(in srgb, var(--bg) 86%, transparent);
+  backdrop-filter: saturate(180%) blur(12px);
+  border-bottom: 1px solid var(--rule);
+  padding-top: env(safe-area-inset-top);
+}
+.hdr__row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  height: 52px;
+}
+.hdr__title {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-display);
+  font-size: .95rem;
+  font-weight: 600;
+  letter-spacing: .02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hdr__title small {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: .7rem;
+  font-weight: 500;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.iconbtn {
+  /* 44px is the comfortable thumb target; these are the controls most often
+     pressed one-handed, half asleep, at Compline. */
+  width: 44px; height: 44px;
+  display: grid; place-items: center;
+  border-radius: 10px;
+  color: var(--ink-soft);
+  flex: none;
+}
+.iconbtn:hover { background: var(--bg-sunken); color: var(--ink); }
+.iconbtn svg { width: 20px; height: 20px; }
+
+/* ------------------------------------------------------------- progress */
+.progress {
+  height: 2px;
+  background: var(--accent);
+  transform-origin: 0 50%;
+  transition: transform .12s linear;
+}
+
+/* ------------------------------------------------------------ dashboard */
+.hero {
+  margin: 1.25rem 0 1.5rem;
+  padding: 1.35rem 1.35rem 1.25rem;
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  border: 1px solid var(--rule);
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+.hero { box-shadow: var(--shadow-lift); }
+.hero::before {
+  content: '';
+  position: absolute; inset: 0 auto 0 0;
+  width: 4px; background: var(--accent-line);
+}
+.hero__eyebrow {
+  font-size: .68rem; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--accent); font-weight: 700;
+}
+.hero__title {
+  font-family: var(--font-display);
+  letter-spacing: .015em;
+  font-size: clamp(1.2rem, 4.8vw, 1.5rem);
+  line-height: 1.15;
+  margin: .35rem 0 .3rem;
+  font-weight: 600;
+}
+.hero__meta { color: var(--ink-soft); font-size: .875rem; }
+.hero__actions { display: flex; gap: .5rem; margin-top: 1rem; flex-wrap: wrap; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: .4rem;
+  padding: .6rem 1rem;
+  border-radius: 999px;
+  border: 1px solid var(--rule-strong);
+  background: var(--bg-raised);
+  font-size: .875rem; font-weight: 600;
+  color: var(--ink);
+  transition: background .15s, border-color .15s;
+}
+.btn { box-shadow: var(--shadow); transition: background .16s, border-color .16s, transform .1s, box-shadow .16s; }
+.btn:hover { background: var(--bg-sunken); border-color: var(--accent-line); }
+.btn:active { transform: scale(.975); box-shadow: none; }
+.btn--primary {
+  background: var(--accent); color: var(--accent-ink);
+  border-color: transparent;
+  box-shadow: var(--shadow-lift);
+}
+.btn--primary:hover { background: color-mix(in srgb, var(--accent) 88%, #000); }
+.btn--ghost { border-color: transparent; background: transparent; color: var(--ink-soft); }
+.btn--ghost:hover { background: var(--bg-sunken); color: var(--ink); }
+
+.sect { margin: 1.75rem 0; }
+.sect__head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 1rem; margin-bottom: .7rem;
+}
+.sect__title {
+  font-size: .68rem; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--ink-faint); font-weight: 700;
+}
+
+.tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: .6rem; }
+@media (min-width: 34rem) { .tiles { grid-template-columns: repeat(3, 1fr); } }
+.tile {
+  display: flex; flex-direction: column; gap: .2rem;
+  padding: .85rem .9rem;
+  text-align: left;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  background: var(--bg-raised);
+  transition: border-color .15s, transform .12s;
+}
+.tile { box-shadow: var(--shadow); }
+.tile:hover { border-color: var(--accent-line); box-shadow: var(--shadow-lift); }
+.tile:active { transform: scale(.985); box-shadow: none; }
+.tile__name { font-family: var(--font-display); font-size: .9rem; font-weight: 600; letter-spacing: .015em; }
+.tile__sub { font-size: .75rem; color: var(--ink-faint); }
+.tile--now { border-color: var(--accent); background: var(--accent-wash); }
+
+.segmented {
+  display: inline-flex; padding: 3px; gap: 2px;
+  background: var(--bg-sunken); border-radius: 999px;
+}
+.segmented button {
+  padding: .35rem .8rem; border-radius: 999px;
+  font-size: .8rem; font-weight: 600; color: var(--ink-soft);
+}
+.segmented button[aria-pressed='true'] {
+  background: var(--bg-raised); color: var(--ink); box-shadow: var(--shadow);
+}
+
+.chiprow { display: flex; flex-wrap: wrap; gap: .4rem; }
+.chip {
+  display: inline-flex; align-items: center; min-height: 44px;
+  padding: .4rem .9rem; border-radius: 999px;
+  border: 1px solid var(--rule); background: var(--bg-raised);
+  font-size: .8rem; color: var(--ink-soft);
+}
+.chip { transition: background .16s, border-color .16s, transform .1s; }
+.chip:hover { border-color: var(--accent-line); color: var(--ink); }
+.chip:active { transform: scale(.97); }
+.chip[aria-pressed='true'] { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+
+.list {
+  border: 1px solid var(--rule); border-radius: var(--radius-sm);
+  overflow: hidden; background: var(--bg-raised); box-shadow: var(--shadow);
+}
+.list__item {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  width: 100%; padding: .8rem .9rem; text-align: left;
+  border-bottom: 1px solid var(--rule);
+}
+.list__item:last-child { border-bottom: 0; }
+.list__item:hover { background: var(--bg-sunken); }
+.list__label { font-family: var(--font-serif); font-size: 1.02rem; }
+.list__meta { font-size: .75rem; color: var(--ink-faint); flex: none; }
+
+/* ---------------------------------------------------------------- reader */
+.reader {
+  touch-action: pan-y pinch-zoom;
+  font-family: var(--font-reader);
+  font-size: var(--reader-size);
+  line-height: var(--reader-leading);
+  padding-bottom: 6rem;
+  /* 68ch measured in the face actually in use: EB Garamond, Newsreader and
+     Cormorant all set to different widths at the same point size, and a fixed
+     rem width would give each of them a different line length. */
+  max-width: min(68ch, 100%);
+  --rhythm: 1.6em;
+  --stanza-gap: .95em;
+  margin: 0 auto;
+}
+.reader__hat {
+  margin: 1.25rem 0 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--rule);
+}
+.reader__kicker {
+  font-family: var(--font-sans);
+  font-size: .68rem; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--accent); font-weight: 700;
+}
+.reader__title {
+  font-family: var(--font-display);
+  font-size: clamp(1.3rem, 5.6vw, 1.7rem);
+  line-height: 1.22; margin: .35rem 0 .3rem; font-weight: 600;
+  letter-spacing: .015em;
+}
+.reader__sub { font-family: var(--font-sans); font-size: .82rem; color: var(--ink-faint); }
+
+.blk { margin: var(--rhythm, 1.6em) 0; scroll-margin-top: 70px; }
+
+.h1, .h2 {
+  font-family: var(--font-reader);
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 2em 0 .8em;
+}
+.h1 {
+  font-family: var(--font-display);
+  font-size: 1.02em; text-align: center; letter-spacing: .045em;
+}
+.h2 {
+  font-size: .8em; letter-spacing: .13em; text-transform: uppercase;
+  color: var(--ink-faint); font-family: var(--font-sans); font-weight: 700;
+  text-align: center;
+}
+.h1::after {
+  content: ''; display: block; width: 2.5rem; height: 1px;
+  background: var(--accent-line); margin: .7em auto 0;
+}
+
+/* antiphons */
+.ant {
+  border-left: 2px solid var(--lit-day);
+  padding: .1em 0 .1em .9em;
+  margin: 1.6em 0;
+}
+.ant__row { margin: .55em 0; }
+.ant__row:first-child { margin-top: 0; }
+.ant__row:last-child { margin-bottom: 0; }
+.ant__label {
+  font-family: var(--font-sans);
+  font-size: .62em; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--rubric);
+  display: block; margin-bottom: .1em;
+}
+.ant__text { font-style: italic; }
+.ant--filtered .ant__row { display: none; }
+.ant--filtered .ant__row[data-active='1'] { display: block; }
+
+/* psalms & canticles */
+.psalm__head {
+  display: flex; align-items: baseline; gap: .6em; flex-wrap: wrap;
+  margin: 1.9em 0 .75em;
+  padding-bottom: .4em;
+  border-bottom: 1px solid var(--accent-line);
+}
+.psalm__ref {
+  font-family: var(--font-display);
+  font-size: .9em; font-weight: 600; letter-spacing: .02em;
+}
+.psalm__section {
+  display: inline-block;
+  margin-left: .5em;
+  padding: .05em .5em;
+  border-radius: 999px;
+  background: var(--accent-wash);
+  color: var(--accent);
+  font-family: var(--font-sans);
+  font-size: .62em; font-weight: 700; letter-spacing: .1em;
+  vertical-align: .12em;
+}
+.psalm__title {
+  font-family: var(--font-sans); font-size: .72em;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint);
+}
+.psalm__alt { font-family: var(--font-sans); font-size: .72em; color: var(--ink-faint); width: 100%; }
+
+.strophe { margin: 0 0 var(--stanza-gap, .95em); }
+.strophe:last-child { margin-bottom: 0; }
+.line { display: block; text-indent: -1.1em; padding-left: 1.1em; }
+.line--i1 { padding-left: 2.3em; }
+.line--i2 { padding-left: 3.5em; }
+
+/* two-choir alternation */
+.reader[data-choir='on'] .strophe--b { color: var(--choir-b); }
+.reader[data-choir='on'] .strophe { position: relative; }
+.reader[data-choir='on'] .strophe::before {
+  content: attr(data-side);
+  position: absolute; left: -1.7em; top: .15em;
+  font-family: var(--font-sans); font-size: .6em; font-weight: 700;
+  color: var(--ink-faint); letter-spacing: .05em;
+}
+@media (max-width: 30rem) {
+  .reader[data-choir='on'] .strophe::before { left: -1.15em; font-size: .55em; }
+}
+
+/* pitch / tone markers printed as "/" in the book */
+.tone {
+  color: var(--rubric);
+  font-weight: 700;
+  padding: 0 .12em;
+  opacity: .75;
+}
+.reader[data-tones='off'] .tone { display: none; }
+
+/* prose, rubrics, versicles */
+.para { margin: 0 0 .9em; }
+.para:last-child { margin-bottom: 0; }
+.rubric {
+  font-family: var(--font-sans);
+  font-size: .78em; font-style: italic;
+  color: var(--rubric);
+  text-align: center;
+  margin: 1.3em 0;
+}
+.label {
+  font-family: var(--font-sans);
+  font-size: .7em; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 1.6em 0 .5em;
+}
+.label em { font-style: normal; text-transform: none; letter-spacing: 0; font-weight: 500; }
+.xref {
+  font-family: var(--font-sans); font-size: .8em;
+  color: var(--ink-soft);
+  background: var(--bg-sunken);
+  border-radius: var(--radius-sm);
+  padding: .55em .8em;
+  margin: 1.2em 0;
+}
+.vr { margin: 1.3em 0; }
+.vr__row { display: flex; gap: .55em; margin: .3em 0; }
+.vr__c {
+  flex: none; width: 1.1em;
+  font-family: var(--font-sans); font-size: .72em; font-weight: 700;
+  color: var(--rubric); padding-top: .28em;
+}
+.reading__ref {
+  font-family: var(--font-sans); font-size: .72em;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint);
+  margin-bottom: .3em;
+}
+
+/* engraved music plates */
+.plate { margin: 1.6em 0; }
+.plate img {
+  width: 100%; height: auto; display: block;
+  border: 1px solid var(--rule); border-radius: var(--radius-sm);
+  background: #fff;
+}
+:root[data-theme='dark'] .plate img { filter: invert(1) hue-rotate(180deg); opacity: .9; }
+.plate figcaption {
+  font-family: var(--font-sans); font-size: .74em;
+  color: var(--ink-faint); text-align: center; margin-top: .5em;
+}
+
+/* --------------------------------------------------------- bottom bar */
+.dock {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 45;
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
+  backdrop-filter: saturate(180%) blur(14px);
+  border-top: 1px solid var(--rule);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.dock__row {
+  display: flex; align-items: center; gap: .4rem;
+  height: 54px;
+  max-width: var(--shell-max); margin: 0 auto;
+  padding: 0 clamp(.75rem, 3vw, 1.25rem);
+}
+.dock__spacer { flex: 1; }
+.dock__jump {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: .35rem;
+  padding: .45rem .7rem;
+  border: 1px solid var(--rule); border-radius: 999px;
+  background: var(--bg-raised);
+  font-size: .8rem; color: var(--ink-soft);
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.dock__jump svg { width: 16px; height: 16px; flex: none; }
+
+@media (max-width: 30rem) {
+  .dock__row { flex-wrap: wrap; height: auto; min-height: 54px; padding-top: .3rem; padding-bottom: .3rem; row-gap: .3rem; }
+  .dock__jump { order: 1; flex: 1 0 100%; }
+  .reader { padding-bottom: 9rem; }
+}
+
+/* --------------------------------------------------------------- sheet */
+.scrim {
+  position: fixed; inset: 0; z-index: 60;
+  background: var(--overlay);
+  animation: fade .16s ease-out;
+}
+@keyframes fade { from { opacity: 0 } to { opacity: 1 } }
+.sheet {
+  position: fixed; z-index: 61;
+  overscroll-behavior: contain;
+  left: 0; right: 0; bottom: 0;
+  max-height: 86dvh;
+  display: flex; flex-direction: column;
+  background: var(--bg-raised);
+  border-top-left-radius: 20px; border-top-right-radius: 20px;
+  border: 1px solid var(--rule); border-bottom: 0;
+  box-shadow: var(--shadow);
+  animation: rise .2s cubic-bezier(.22,.9,.3,1);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+@keyframes rise { from { transform: translateY(14px); opacity: .4 } to { transform: none; opacity: 1 } }
+@media (min-width: 40rem) {
+  .sheet {
+    left: 50%; right: auto; bottom: auto; top: 50%;
+    width: min(34rem, calc(100vw - 3rem));
+    transform: translate(-50%, -50%);
+    border-radius: 18px; border-bottom: 1px solid var(--rule);
+  }
+  @keyframes rise { from { transform: translate(-50%,-46%); opacity: .4 } to { transform: translate(-50%,-50%); opacity: 1 } }
+}
+.sheet__grab { width: 36px; height: 4px; border-radius: 2px; background: var(--rule-strong); margin: .6rem auto .2rem; }
+@media (min-width: 40rem) { .sheet__grab { display: none; } }
+.sheet__head {
+  display: flex; align-items: center; gap: .5rem;
+  padding: .75rem 1rem; border-bottom: 1px solid var(--rule);
+}
+.sheet__title { flex: 1; font-family: var(--font-display); font-size: .92rem; font-weight: 600; letter-spacing: .02em; }
+.sheet__body { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 1rem; }
+
+.field { display: block; margin-bottom: 1.25rem; }
+.field__label {
+  display: block; font-size: .72rem; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint);
+  margin-bottom: .5rem;
+}
+.field__hint { font-size: .78rem; color: var(--ink-faint); margin-top: .45rem; }
+.stepper { display: flex; align-items: center; gap: .5rem; }
+.stepper__val {
+  flex: 1; text-align: center; font-variant-numeric: tabular-nums;
+  font-size: .85rem; color: var(--ink-soft);
+}
+.stepbtn {
+  width: 44px; height: 44px; border-radius: 10px;
+  border: 1px solid var(--rule); background: var(--bg-raised);
+  font-weight: 700; font-size: .95rem;
+}
+.stepbtn:hover { background: var(--bg-sunken); }
+
+.search__input {
+  width: 100%; padding: .7rem .85rem;
+  border: 1px solid var(--rule-strong); border-radius: 10px;
+  background: var(--bg); color: var(--ink);
+}
+.search__input::placeholder { color: var(--ink-faint); }
+.result { display: block; width: 100%; text-align: left; padding: .65rem .1rem; border-bottom: 1px solid var(--rule); }
+.result:hover .result__name { color: var(--accent); }
+.result__name { display: block; font-family: var(--font-serif); font-size: 1rem; }
+.result__where { display: block; font-size: .75rem; color: var(--ink-faint); margin-top: .1rem; }
+.empty { padding: 2rem 1rem; text-align: center; color: var(--ink-faint); font-size: .875rem; }
+
+.toc { display: flex; flex-direction: column; }
+.toc__item { text-align: left; padding: .6rem .2rem; border-bottom: 1px solid var(--rule); font-family: var(--font-serif); }
+.toc__item[data-lvl='2'] { padding-left: 1rem; font-size: .9rem; color: var(--ink-soft); }
+.toc__item[data-current='1'] { color: var(--accent); font-weight: 600; }
+
+.grid2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(4.2rem, 1fr)); gap: .4rem; }
+.psalmbtn {
+  padding: .5rem .2rem; text-align: center;
+  border: 1px solid var(--rule); border-radius: 8px;
+  font-variant-numeric: tabular-nums; font-size: .85rem;
+  background: var(--bg-raised);
+}
+.psalmbtn:hover { border-color: var(--accent); color: var(--accent); }
+.psalmbtn span { display: block; font-size: .62rem; color: var(--ink-faint); }
+
+.table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.table th, .table td { text-align: left; padding: .45rem .5rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.table th { font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); }
+.table tr[data-head='1'] td { background: var(--bg-sunken); font-weight: 700; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: var(--radius-sm); }
+
+.note {
+  font-size: .8rem; color: var(--ink-soft);
+  background: var(--bg-sunken); border-radius: var(--radius-sm);
+  padding: .75rem .85rem; margin: 1rem 0;
+}
+.footer {
+  margin-top: auto; padding: 2.5rem 0 3rem;
+  font-size: .75rem; color: var(--ink-faint); text-align: center; line-height: 1.6;
+}
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ------------------------------------------------- the liturgical day */
+/* Each celebration carries its own colour, which is a fact about the day
+   rather than a theme choice, so it is set per element and not on :root. */
+.litbar {
+  --lit: var(--accent);
+  display: flex;
+  gap: .9rem;
+  margin: 1.25rem 0 1.5rem;
+  padding: 1rem 1.1rem 1rem 0;
+  border: 1px solid color-mix(in srgb, var(--lit) 34%, var(--rule));
+  border-radius: var(--radius);
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--lit) 5%, var(--bg-raised)),
+    var(--bg-raised) 55%);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.litbar[data-colour='white'] { --lit: var(--lit-white); }
+.litbar[data-colour='red'] { --lit: var(--lit-red); }
+.litbar[data-colour='green'] { --lit: var(--lit-green); }
+.litbar[data-colour='violet'] { --lit: var(--lit-violet); }
+.litbar[data-colour='rose'] { --lit: var(--lit-rose); }
+.litbar[data-colour='black'] { --lit: var(--lit-black); }
+
+/* "Colour of the day" in the settings sheet puts data-lit on the root, which
+   is what carries the vesture out of the header and into the reader. It goes
+   no further than the antiphon rule: the buttons stay gold. */
+:root[data-lit='white'] { --lit-day: var(--lit-white); }
+:root[data-lit='red'] { --lit-day: var(--lit-red); }
+:root[data-lit='green'] { --lit-day: var(--lit-green); }
+:root[data-lit='violet'] { --lit-day: var(--lit-violet); }
+:root[data-lit='rose'] { --lit-day: var(--lit-rose); }
+:root[data-lit='black'] { --lit-day: var(--lit-black); }
+
+.litbar__swatch { flex: none; width: 5px; background: var(--lit); align-self: stretch; }
+.litbar__body { min-width: 0; flex: 1; }
+.litbar__date {
+  margin: 0; font-size: .74rem; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-faint); display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap;
+}
+.litbar__pick {
+  font-size: .72rem; letter-spacing: .04em; text-transform: none;
+  color: var(--lit); font-weight: 600; text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.litbar__title {
+  font-family: var(--font-display);
+  font-size: clamp(1rem, 4vw, 1.2rem);
+  line-height: 1.3; font-weight: 600; margin: .35rem 0 .55rem;
+  letter-spacing: .015em;
+}
+.litbar__meta { display: flex; flex-wrap: wrap; gap: .35rem; margin: 0; }
+.litbar__also {
+  margin: .6rem 0 0; font-size: .78rem; color: var(--ink-soft); line-height: 1.45;
+}
+.litbar--compact { margin: 1rem 0; padding: .75rem .9rem .75rem 0; }
+.litbar--compact .litbar__title { font-size: 1.05rem; }
+
+.badge {
+  display: inline-block;
+  padding: .15em .6em;
+  border-radius: 999px;
+  font-family: var(--font-sans);
+  font-size: .68rem; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase;
+  border: 1px solid transparent;
+}
+.badge--solemnity { background: var(--lit); color: var(--bg-raised); }
+.badge--feast { background: color-mix(in srgb, var(--lit) 18%, transparent); color: var(--lit); border-color: var(--lit); }
+.badge--memorial { background: color-mix(in srgb, var(--lit) 12%, transparent); color: var(--lit); }
+.badge--optional { color: var(--ink-soft); border-color: var(--rule-strong); }
+.badge--ferial { color: var(--ink-faint); border-color: var(--rule); }
+.badge--plain { color: var(--ink-soft); border-color: var(--rule); }
+
+/* the plan for the day */
+.plan { display: flex; flex-direction: column; gap: .5rem; }
+.plan__row {
+  display: flex; align-items: flex-start; gap: .75rem; width: 100%;
+  padding: .7rem .8rem; text-align: left;
+  border: 1px solid var(--rule); border-radius: var(--radius-sm);
+  background: var(--bg-raised);
+}
+.plan__row { box-shadow: var(--shadow); transition: border-color .16s, transform .1s, box-shadow .16s; }
+.plan__row:hover { border-color: var(--accent-line); box-shadow: var(--shadow-lift); }
+.plan__row:active { transform: scale(.99); box-shadow: none; }
+.plan__hour {
+  flex: none; width: 8.5rem;
+  font-family: var(--font-display); font-size: .84rem;
+  font-weight: 600; letter-spacing: .02em;
+}
+.plan__what { flex: 1; min-width: 0; font-size: .8rem; color: var(--ink-soft); }
+.plan__src {
+  flex: none; font-size: .62rem; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--ink-faint);
+}
+.plan__caveat {
+  display: block; margin-top: .3rem; font-size: .76rem;
+  color: var(--ink-faint); font-style: italic; line-height: 1.4;
+}
+@media (max-width: 30rem) {
+  .plan__row { flex-wrap: wrap; }
+  .plan__hour { width: auto; }
+  .plan__what { flex-basis: 100%; }
+}
+
+/* the month grid */
+.cal__head { display: flex; align-items: center; gap: .6rem; margin-bottom: .8rem; }
+.cal__month { flex: 1; text-align: center; font-family: var(--font-serif); font-size: 1.05rem; font-weight: 600; }
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.cal__dow {
+  text-align: center; font-size: .62rem; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--ink-faint); padding-bottom: .3rem;
+}
+.cal__day {
+  --lit: var(--ink-faint);
+  aspect-ratio: 1; display: grid; place-items: center;
+  border-radius: 50%; border: 1px solid transparent;
+  transition: background .14s, transform .1s;
+  font-size: .82rem; font-variant-numeric: tabular-nums;
+  color: var(--ink); position: relative;
+}
+.cal__day[data-colour='white'] { --lit: #96762a; }
+.cal__day[data-colour='red'] { --lit: #8e2f2a; }
+.cal__day[data-colour='green'] { --lit: #3d6b46; }
+.cal__day[data-colour='violet'] { --lit: #6b2f6e; }
+.cal__day[data-colour='rose'] { --lit: #b0637f; }
+.cal__day::after {
+  content: ''; position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%);
+  width: 5px; height: 5px; border-radius: 50%; background: var(--lit);
+}
+.cal__day[data-rank='solemnity'] { border-color: var(--lit); border-width: 2px; font-weight: 700; }
+.cal__day[data-rank='feast'] { border-color: var(--lit); font-weight: 600; }
+.cal__day:active { transform: scale(.92); }
+.cal__day[data-out='1'] { opacity: .35; }
+.cal__day[data-today='1'] { background: var(--bg-sunken); }
+.cal__day[data-selected='1'] { background: var(--lit); color: var(--bg-raised); }
+.cal__day[data-selected='1']::after { background: var(--bg-raised); }
+.cal__day:hover { background: var(--bg-sunken); }
+.cal__day[data-selected='1']:hover { background: var(--lit); }
+
+/* dock controls: text size, theme and stepping between the hours */
+.dock__row { gap: .3rem; }
+.dock__group { display: flex; gap: .15rem; flex: none; }
+.iconbtn--text {
+  font-family: var(--font-sans);
+  font-size: .82rem; font-weight: 700; letter-spacing: -.01em;
+}
+.iconbtn:disabled { opacity: .3; cursor: default; }
+.iconbtn:disabled:hover { background: none; color: var(--ink-soft); }
+.iconbtn { transition: background .14s, color .14s, transform .1s; }
+.iconbtn:active:not(:disabled) { transform: scale(.9); }
+@media (max-width: 26rem) {
+  .dock__jump { padding: .4rem .55rem; font-size: .74rem; }
+}
+
+/* =========================================================================
+   TWO PRAYER-BOOK STYLES
+   =========================================================================
+
+   The lighting theme (light / sepia / dark) owns the ground and the ink, and
+   goes on owning them: that is what keeps contrast honest in all six
+   combinations. An aesthetic owns only how the book is set — the faces, the
+   weight of the rules, the ornament, and how a verse is laid out.
+
+   Direction A, "Vellum & Rubric", sets the office the way a printed breviary
+   does: vermilion rubrics, gold hairlines, a boxed versal at the head of a
+   psalm, hour names in small caps with their Latin beside them.
+
+   Direction B, "Still Point", gets out of the way: a quiet reading face, verse
+   numbers in a mono gutter, the day's colour reduced to a single dot.
+
+   --accent stays the app's own gold and --lit stays the day's vesture; neither
+   belongs to an aesthetic, and an aesthetic must not reach for either.
+   ========================================================================= */
+
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal; font-weight: 600; font-display: swap;
+  src: url('/fonts/cormorant-garamond-latin-600-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal; font-weight: 400; font-display: swap;
+  src: url('/fonts/cormorant-garamond-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: italic; font-weight: 400; font-display: swap;
+  src: url('/fonts/cormorant-garamond-latin-400-italic.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal; font-weight: 400; font-display: swap;
+  src: url('/fonts/newsreader-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Newsreader';
+  font-style: italic; font-weight: 400; font-display: swap;
+  src: url('/fonts/newsreader-latin-400-italic.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal; font-weight: 400; font-display: swap;
+  src: url('/fonts/ibm-plex-mono-latin-400-normal.woff2') format('woff2');
+}
+
+/* Neutral defaults, so the app is still coherent before an aesthetic is set. */
+:root {
+  --font-meta: var(--font-sans);
+  --font-versal: var(--font-display);
+  --rule-hair: var(--rule);
+  --meta-size: .68rem;
+  --meta-track: .14em;
+}
+
+/* --------------------------------------------------- A. Vellum & Rubric */
+/* Only --font-serif is touched, never --font-reader: the Serif/Sans switch in
+   the settings sheet has to keep working underneath whichever style is on. */
+:root[data-aesthetic='vellum'] {
+  --font-serif: 'EB Garamond', 'Iowan Old Style', 'Palatino Linotype',
+    'Book Antiqua', Palatino, Georgia, serif;
+  --font-display: 'Cormorant Garamond', 'Cinzel', 'Iowan Old Style', Georgia, serif;
+  --font-meta: 'EB Garamond', Georgia, serif;
+  --font-versal: 'Cormorant Garamond', Georgia, serif;
+  --rule-hair: var(--accent-line);
+  --meta-size: .72rem;
+  --meta-track: .18em;
+}
+
+/* A wash of gold over the ground, the weight of tea in paper. Left off the
+   dark theme, where any warm veil over near-black reads as dirt. */
+:root[data-aesthetic='vellum']:not([data-theme='dark']) body {
+  background-color: var(--bg);
+  background-image: linear-gradient(0deg,
+    color-mix(in srgb, #c9a227 7%, transparent),
+    color-mix(in srgb, #c9a227 7%, transparent));
+}
+
+/* ------------------------------------------------------- B. Still Point */
+:root[data-aesthetic='still-point'] {
+  --font-serif: 'Newsreader', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+  --font-display: 'Newsreader', Georgia, serif;
+  --font-meta: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-versal: 'Newsreader', Georgia, serif;
+  --rule-hair: var(--rule);
+  --meta-size: .63rem;
+  --meta-track: .13em;
+  /* Derived from --reader-size, not written in em: the marker sets its own
+     font-size, so an em would resolve against that rather than against the
+     track it has to line up with. This way both stay one length, and both
+     still follow A- / A+. */
+  --verse-gutter: calc(var(--reader-size) * 1.9);
+}
+/* Cool paper, but only where the reader has not asked for warmth: Sepia is
+   chosen for its warmth and Still Point has no business overruling it, and
+   the dark theme has no paper to cool. The ink is untouched, so every one of
+   these surfaces gains contrast rather than losing it. */
+:root[data-aesthetic='still-point'][data-theme='light'] {
+  --bg: #fbfbfd;
+  --bg-raised: #ffffff;
+  --bg-sunken: #f1f2f6;
+  --rule: #e7e9ee;
+  --rule-strong: #d6dae2;
+}
+
+/* ------------------------------------------- pieces both styles rely on */
+
+/* The Latin name of the hour, shown only where a style asks for it. */
+.reader__latin { display: none; }
+
+/* Verse numbering. Rendered always, revealed only by Still Point, so the
+   two styles share one DOM and switching is a repaint and nothing more. */
+.strophe__n { display: none; }
+
+/* Pointing: the flex asterisk and the dagger, where the book prints them.
+   The text carries very few of these — they are set apart rather than
+   invented, and never inserted where the printed page has none. */
+.point {
+  color: var(--rubric);
+  font-weight: 600;
+  padding: 0 .1em;
+  font-feature-settings: 'liga' 0;
+}
+.reader[data-tones='off'] .point { opacity: .45; }
+
+/* Live feedback for A− / A+, over the text rather than in a dialog. */
+.sizehint {
+  position: fixed; left: 50%; bottom: calc(54px + env(safe-area-inset-bottom) + .6rem);
+  transform: translateX(-50%);
+  z-index: 46; pointer-events: none;
+  background: var(--ink); color: var(--bg);
+  font-family: var(--font-sans); font-size: .72rem; font-weight: 600;
+  letter-spacing: .06em;
+  padding: .3rem .7rem; border-radius: 999px;
+  box-shadow: var(--shadow-lift);
+  opacity: 0; transition: opacity .18s ease;
+}
+.sizehint[data-show='1'] { opacity: .94; }
+@media (prefers-reduced-motion: reduce) { .sizehint { transition: none; } }
+
+/* "Continue where you stopped" — the commonest job in the app. */
+.resume {
+  display: flex; align-items: center; gap: .85rem; width: 100%;
+  text-align: left;
+  background: var(--bg-raised);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  padding: .85rem 1rem;
+  margin: 0 0 1.25rem;
+  box-shadow: var(--shadow);
+}
+.resume:hover { border-color: var(--accent-line); box-shadow: var(--shadow-lift); }
+.resume__body { min-width: 0; flex: 1; }
+.resume__kicker {
+  display: block;
+  font-family: var(--font-meta);
+  font-size: var(--meta-size); letter-spacing: var(--meta-track);
+  text-transform: uppercase; color: var(--accent); font-weight: 600;
+}
+.resume__title {
+  display: block; margin-top: .15rem;
+  font-family: var(--font-display); font-size: 1rem; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.resume__where { display: block; font-size: .78rem; color: var(--ink-faint); margin-top: .1rem; }
+.resume__go { flex: none; color: var(--accent); font-size: 1.2rem; }
+
+/* Where the day has got to, on the plan card. */
+.plan__tick {
+  flex: none; width: 9px; height: 9px; border-radius: 50%;
+  border: 1.5px solid var(--ink-faint); margin-right: .1rem;
+}
+.plan__row[data-state='done'] .plan__tick { background: var(--accent); border-color: var(--accent); }
+.plan__row[data-state='now'] .plan__tick {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.plan__row[data-state='now'] { background: var(--accent-wash); }
+
+/* The day's colour, reduced to one dot. */
+.seasondot {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--lit-day); vertical-align: .05em; margin-right: .45rem;
+}
+
+/* ------------------------------------------------ A. Vellum & Rubric set */
+
+/* The two hairlines that mark a manuscript text block. Dropped on a narrow
+   phone, where there is no margin to spare for them. */
+:root[data-aesthetic='vellum'] .reader { position: relative; }
+@media (min-width: 30rem) {
+  :root[data-aesthetic='vellum'] .reader::before,
+  :root[data-aesthetic='vellum'] .reader::after {
+    content: ''; position: absolute; top: 0; bottom: 6rem; width: 1px;
+    background: var(--accent-line); opacity: .3; pointer-events: none;
+  }
+  :root[data-aesthetic='vellum'] .reader::before { left: -1.1rem; }
+  :root[data-aesthetic='vellum'] .reader::after { right: -1.1rem; }
+}
+
+:root[data-aesthetic='vellum'] .reader__latin {
+  display: block;
+  font-family: var(--font-serif); font-style: italic;
+  font-size: .85rem; color: var(--rubric);
+  letter-spacing: .04em; margin-top: .1rem;
+}
+:root[data-aesthetic='vellum'] .reader__title { font-variant: small-caps; letter-spacing: .04em; }
+:root[data-aesthetic='vellum'] .reader__kicker { color: var(--rubric); }
+
+:root[data-aesthetic='vellum'] .h1 { font-variant: small-caps; letter-spacing: .05em; }
+:root[data-aesthetic='vellum'] .h2 {
+  font-family: var(--font-meta); font-style: italic; text-transform: none;
+  letter-spacing: .06em; color: var(--rubric); font-weight: 400; font-size: .86em;
+}
+
+/* The antiphon, ruled off above and below as the book rules it. */
+:root[data-aesthetic='vellum'] .ant {
+  border-left: 0;
+  border-top: 1px solid var(--lit-day);
+  border-bottom: 1px solid var(--lit-day);
+  padding: .8em .4em; text-align: center; font-style: italic;
+}
+:root[data-aesthetic='vellum'] .ant__label {
+  color: var(--rubric); letter-spacing: .18em; font-family: var(--font-meta);
+}
+:root[data-aesthetic='vellum'] .psalm__head { border-bottom-color: var(--accent-line); }
+:root[data-aesthetic='vellum'] .psalm__ref { font-variant: small-caps; letter-spacing: .04em; }
+
+/* The versal: a red initial in a gold box, at the head of the psalm. */
+:root[data-aesthetic='vellum'] .strophe--first > .line:first-child { text-indent: 0; padding-left: 0; }
+:root[data-aesthetic='vellum'] .strophe--first > .line:first-child::first-letter {
+  float: left;
+  font-family: var(--font-versal); font-weight: 600;
+  font-size: 2.8em; line-height: .8;
+  color: var(--rubric);
+  margin: .06em .42em .02em 0;
+  padding: .05em .19em;
+  border: 1px solid var(--accent-line);
+}
+/* The strophe letter is a rubric here, not a grey marginal note. */
+:root[data-aesthetic='vellum'] .reader[data-choir='on'] .strophe::before {
+  color: var(--rubric); font-family: var(--font-meta); font-style: italic;
+  font-size: .68em; font-weight: 400;
+}
+
+/* ---------------------------------------------------- B. Still Point set */
+
+/* The gutter is a reserved track with an out-of-flow marker sitting over it.
+   The marker must never be a grid item: it carries the verse number and, with
+   the choir letters on, a second stacked line beneath it, which made its cell
+   taller than a line of text. Grid then stretched row one, and the first line
+   of every stanza was pushed away from the rest of the stanza.
+
+   position: relative is set here rather than borrowed from the choir rule
+   above, which only applies while the choir letters are on; the marker needs
+   a containing block either way. */
+:root[data-aesthetic='still-point'] .strophe,
+:root[data-aesthetic='green-modern'] .strophe {
+  position: relative;
+  display: grid; grid-template-columns: var(--verse-gutter) 1fr; column-gap: .5rem;
+}
+:root[data-aesthetic='still-point'] .strophe > .line,
+:root[data-aesthetic='green-modern'] .strophe > .line { grid-column: 2; }
+:root[data-aesthetic='still-point'] .strophe__n,
+:root[data-aesthetic='green-modern'] .strophe__n {
+  position: absolute; left: 0; top: 0;
+  width: var(--verse-gutter);
+  display: block;
+  font-family: var(--font-meta); font-size: .6em;
+  color: var(--ink-faint); font-variant-numeric: tabular-nums;
+  text-align: right; padding-top: .5em; user-select: none;
+}
+/* With one gutter there is no room for a second marginal letter, so the
+   choir side joins the number rather than fighting it for the margin. */
+:root[data-aesthetic='still-point'] .reader[data-choir='on'] .strophe::before,
+:root[data-aesthetic='green-modern'] .reader[data-choir='on'] .strophe::before { display: none; }
+:root[data-aesthetic='still-point'] .reader[data-choir='on'] .strophe__n::after,
+:root[data-aesthetic='green-modern'] .reader[data-choir='on'] .strophe__n::after {
+  content: attr(data-side);
+  display: block; margin-top: .35em; font-weight: 600; opacity: .75;
+}
+
+:root[data-aesthetic='still-point'] .ant {
+  border-left: 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  padding: .9em .4em; text-align: center; font-style: italic;
+}
+:root[data-aesthetic='still-point'] .ant__label {
+  font-family: var(--font-meta); color: var(--ink-faint);
+  letter-spacing: .13em; font-weight: 400;
+}
+:root[data-aesthetic='still-point'] .h1 { letter-spacing: .01em; font-weight: 400; }
+:root[data-aesthetic='still-point'] .h1::after { display: none; }
+:root[data-aesthetic='still-point'] .h2 { font-family: var(--font-meta); font-weight: 400; }
+:root[data-aesthetic='still-point'] .reader__kicker { font-family: var(--font-meta); font-weight: 400; }
+:root[data-aesthetic='still-point'] .reader__title { font-weight: 400; letter-spacing: -.01em; }
+:root[data-aesthetic='still-point'] .psalm__head { border-bottom-color: var(--rule); }
+:root[data-aesthetic='still-point'] .psalm__section { background: var(--bg-sunken); color: var(--ink-soft); }
+
+/* ------------------------------------------------------------ geometry */
+
+/* 412px phone: give the text its width back and keep targets at 44px. */
+@media (max-width: 26rem) {
+  .shell { padding-left: .85rem; padding-right: .85rem; }
+  .plan__row, .tile, .list__item { min-height: 44px; }
+  .resume { padding: .75rem .85rem; }
+}
+
+/* Wide desktop: a little more measure, and the dock stops spanning the glass. */
+@media (min-width: 64rem) {
+  /* Wide enough that even the broadest of the three reading faces can
+     reach its 68ch measure instead of being clipped by the column. */
+  :root { --measure: 36rem; --shell-max: 54rem; }
+  .dock {
+    left: 50%; right: auto; transform: translateX(-50%);
+    width: min(var(--shell-max), calc(100vw - 2rem));
+    border: 1px solid var(--rule); border-bottom: 0;
+    border-radius: 14px 14px 0 0;
+  }
+}
+
+/* A versal is 2.8em tall and floats; a two-line opening verse would let it
+   hang into the next one. Reserve the height rather than clip the ornament. */
+:root[data-aesthetic='vellum'] .strophe--first { min-height: 2.7em; }
+
+/* On a narrow phone the marginal choir letter has nowhere to sit: the shell
+   padding is all there is between the text and the glass. Reserve the margin
+   rather than let the letter ride the edge. */
+@media (max-width: 30rem) {
+  .reader[data-choir='on'] { padding-left: 1.25em; }
+}
+
+/* =========================================================================
+   C. Green Modern
+   =========================================================================
+
+   The third style, and the only one that brings its own palette. Vellum and
+   Still Point leave the ground and the ink to the lighting theme; this one is
+   a designed colour scheme — deep green chrome, cream page, tan call to
+   action — so it remaps the surface tokens instead, and the rest of the app
+   follows without needing to know. Ink is remapped with it, so contrast is
+   set here rather than inherited.
+
+   The lighting theme still means something: Light and Sepia get the palette
+   as drawn, Dark gets the same identity over a near-black ground.
+   ========================================================================= */
+:root[data-aesthetic='green-modern'] {
+  --green-900: #123027;
+  --green-800: #17392c;
+  --green-700: #1e4a38;
+  --green-600: #25604a;
+  --cream: #f4eee6;
+  --card: #fbf6ef;
+  --tan: #e9d9be;
+
+  /* Cormorant for the titles and the verses, a plain sans for the furniture. */
+  --font-serif: 'Cormorant Garamond', 'EB Garamond', 'Iowan Old Style', Georgia, serif;
+  --font-display: 'Cormorant Garamond', 'Cinzel', Georgia, serif;
+  --font-meta: var(--font-sans);
+  --meta-size: .66rem;
+  --meta-track: .1em;
+  --verse-gutter: calc(var(--reader-size) * 1.9);
+
+  /* Generous rounding: 18px on the panels, 15px on the list cards. */
+  --radius: 18px;
+  --radius-sm: 15px;
+}
+
+/* The page, as drawn. */
+:root[data-aesthetic='green-modern']:not([data-theme='dark']) {
+  --bg: var(--cream);
+  --bg-raised: var(--card);
+  --bg-sunken: #efe8dd;
+  --ink: #141414;
+  --ink-soft: #55504a;
+  /* The brief's --muted is #7A7268, which lands at 4.13:1 on this cream and
+     so fails AA for caption-sized text. This is that colour darkened by the
+     least that clears 4.5:1; it is the only value here changed from the spec. */
+  --ink-faint: #726a61;
+  --rule: #e3dacc;
+  --rule-strong: #d4c8b4;
+  --accent: var(--green-600);
+  --accent-line: var(--green-600);
+  --accent-ink: #ffffff;
+  --accent-wash: #e7efe9;
+  --rubric: #8f3a2a;
+  /* The second choir is a whole psalm's worth of body text, so it has to
+     clear 4.5:1 like any other: a softer green-grey measured 3.87 here. */
+  --choir-b: #5f6a62;
+  --overlay: rgba(18, 48, 39, .45);
+}
+
+/* The same identity after dark: the greens stay, the paper goes. */
+:root[data-aesthetic='green-modern'][data-theme='dark'] {
+  --bg: #0d1f19;
+  --bg-raised: #143026;
+  --bg-sunken: #0a1813;
+  --ink: #f2ece2;
+  --ink-soft: #c6cec7;
+  --ink-faint: #9fada4;
+  --rule: #1e4a38;
+  --rule-strong: #25604a;
+  --accent: #a9ccb6;
+  --accent-line: #25604a;
+  --accent-ink: #0d1f19;
+  --accent-wash: #17392c;
+  --rubric: #e2a790;
+  --choir-b: #9fada4;
+  --overlay: rgba(3, 10, 8, .7);
+}
+
+/* The day's colour still rules the antiphon when the reader wants it. This
+   only supplies the resting colour, and is written so it cannot outrank the
+   [data-lit] rules that carry the vesture. */
+:root[data-aesthetic='green-modern']:not([data-lit]) { --lit-day: var(--green-600); }
+
+/* ------------------------------------------------- Green Modern surfaces */
+
+/* Header: a solid deep-green block with its bottom corners rounded off,
+   rather than the translucent bar the other styles use. */
+:root[data-aesthetic='green-modern'] .hdr {
+  background: var(--green-900);
+  backdrop-filter: none;
+  border-bottom: 0;
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+:root[data-aesthetic='green-modern'] .hdr__title { color: var(--cream); }
+:root[data-aesthetic='green-modern'] .hdr__title small { color: rgba(244, 238, 230, .74); }
+:root[data-aesthetic='green-modern'] .hdr .iconbtn { color: var(--cream); }
+:root[data-aesthetic='green-modern'] .hdr .iconbtn:hover { background: var(--green-700); }
+/* Gold would disappear into the green; the tan is what reads here. */
+:root[data-aesthetic='green-modern'] .progress { background: var(--tan); }
+
+/* Hero: the deep panel with the tan call to action. */
+:root[data-aesthetic='green-modern'] .hero {
+  background: var(--green-800);
+  border-color: transparent;
+  color: var(--cream);
+}
+:root[data-aesthetic='green-modern'] .hero::before { display: none; }
+:root[data-aesthetic='green-modern'] .hero__eyebrow { color: var(--tan); font-weight: 600; }
+:root[data-aesthetic='green-modern'] .hero__title {
+  color: #f8f4ec; font-size: clamp(1.5rem, 6.2vw, 1.95rem); font-weight: 700;
+  line-height: 1.1; letter-spacing: 0;
+}
+:root[data-aesthetic='green-modern'] .hero__meta { color: rgba(244, 238, 230, .82); }
+:root[data-aesthetic='green-modern'] .hero .btn {
+  background: transparent; color: var(--cream);
+  border-color: rgba(244, 238, 230, .38); box-shadow: none;
+}
+:root[data-aesthetic='green-modern'] .hero .btn:hover { background: var(--green-700); border-color: transparent; }
+:root[data-aesthetic='green-modern'] .hero .btn--primary {
+  background: var(--tan); color: var(--green-900); border-color: transparent; font-weight: 700;
+}
+:root[data-aesthetic='green-modern'] .hero .btn--primary:hover { background: #f0e4cf; }
+
+/* Section headings are set, not lettered out in small caps. */
+:root[data-aesthetic='green-modern'] .sect__title {
+  font-family: var(--font-display);
+  font-size: 1.2rem; font-weight: 700;
+  letter-spacing: 0; text-transform: none; color: var(--ink);
+}
+
+/* The hour tiles are the dark cards of the reference. */
+:root[data-aesthetic='green-modern'] .tile {
+  background: var(--green-800);
+  border-color: transparent;
+  min-height: 5rem;
+  justify-content: flex-end;
+}
+:root[data-aesthetic='green-modern'] .tile__name { color: #f8f4ec; font-size: 1.05rem; font-weight: 600; }
+:root[data-aesthetic='green-modern'] .tile__sub { color: rgba(244, 238, 230, .72); }
+:root[data-aesthetic='green-modern'] .tile:hover { border-color: var(--tan); }
+:root[data-aesthetic='green-modern'] .tile--now { background: var(--green-600); }
+
+/* Dock: the dark control bar, with its own rounded top. */
+:root[data-aesthetic='green-modern'] .dock {
+  background: var(--green-900);
+  backdrop-filter: none;
+  border-top: 0;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+:root[data-aesthetic='green-modern'] .dock .iconbtn { color: var(--cream); }
+:root[data-aesthetic='green-modern'] .dock .iconbtn:hover { background: var(--green-700); }
+:root[data-aesthetic='green-modern'] .dock .iconbtn:disabled { color: rgba(244, 238, 230, .34); }
+:root[data-aesthetic='green-modern'] .dock__jump {
+  background: var(--green-700); border-color: transparent; color: rgba(244, 238, 230, .88);
+}
+
+/* The antiphon is a cream card ruled down its left edge. */
+:root[data-aesthetic='green-modern'] .ant {
+  background: var(--bg-raised);
+  border-left: 3px solid var(--lit-day);
+  border-top: 0; border-bottom: 0;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: .85em 1em;
+  font-style: italic;
+  text-align: left;
+}
+:root[data-aesthetic='green-modern'] .ant__label {
+  font-family: var(--font-meta); color: var(--green-600);
+  letter-spacing: .1em; font-weight: 700; font-style: normal;
+}
+:root[data-aesthetic='green-modern'][data-theme='dark'] .ant__label { color: var(--accent); }
+
+/* Reader furniture */
+:root[data-aesthetic='green-modern'] .reader { --rhythm: 1.5em; --stanza-gap: .85em; }
+:root[data-aesthetic='green-modern'] .reader__title { font-weight: 700; letter-spacing: 0; }
+:root[data-aesthetic='green-modern'] .reader__kicker { font-family: var(--font-meta); color: var(--green-600); }
+:root[data-aesthetic='green-modern'][data-theme='dark'] .reader__kicker { color: var(--accent); }
+:root[data-aesthetic='green-modern'] .h1 { font-weight: 700; letter-spacing: .01em; }
+:root[data-aesthetic='green-modern'] .h1::after { background: var(--green-600); }
+:root[data-aesthetic='green-modern'] .h2 { font-family: var(--font-meta); font-weight: 700; }
+:root[data-aesthetic='green-modern'] .psalm__head { border-bottom-color: var(--rule); }
+:root[data-aesthetic='green-modern'] .psalm__ref { font-size: 1.05em; font-weight: 700; }
+
+/* =========================================================================
+   CHROME FINISH — an opt-in gloss, orthogonal to style and to theme
+   =========================================================================
+
+   data-gloss rides alongside data-aesthetic and data-theme, so all three
+   styles and all three themes each have a matte and a lit form. Matte is the
+   default and is what the app has always looked like.
+
+   Two rules hold everywhere below:
+
+   1. It lights the CHROME only — header, dock, sheet, cards, buttons. The
+      page under the psalms is never touched; there is an explicit guard at
+      the end of this section, and a test that measures it.
+   2. It may only set background-image, background-size/position/repeat,
+      box-shadow, border-color and backdrop-filter. Nothing that occupies
+      space, so switching finish cannot move a single pixel of layout.
+   ========================================================================= */
+:root[data-gloss='glossy'] {
+  --spec-hi: rgba(255, 255, 255, .55);
+  --spec-lo: rgba(255, 255, 255, 0);
+  --bevel-top: inset 0 1px 0 rgba(255, 255, 255, .5);
+  --bevel-bot: inset 0 -1px 0 rgba(0, 0, 0, .06);
+}
+:root[data-gloss='glossy'][data-theme='dark'] {
+  --spec-hi: rgba(255, 255, 255, .14);
+  --bevel-top: inset 0 1px 0 rgba(255, 255, 255, .10);
+  --bevel-bot: inset 0 -1px 0 rgba(0, 0, 0, .35);
+}
+
+/* Cards catch the light from above and sit a little further off the page. */
+:root[data-gloss='glossy'] .tile,
+:root[data-gloss='glossy'] .plan__row,
+:root[data-gloss='glossy'] .resume,
+:root[data-gloss='glossy'] .hero {
+  background-image: linear-gradient(to bottom, var(--spec-hi), var(--spec-lo) 46%);
+  box-shadow: var(--bevel-top), var(--bevel-bot), var(--shadow-lift);
+}
+/* The liturgical header already carries a tinted gradient of its own, so it
+   takes the bevel and keeps its own background. */
+:root[data-gloss='glossy'] .litbar {
+  box-shadow: var(--bevel-top), var(--bevel-bot), var(--shadow-lift);
+}
+:root[data-gloss='glossy'] .btn,
+:root[data-gloss='glossy'] .chip {
+  background-image: linear-gradient(to bottom, var(--spec-hi), var(--spec-lo) 55%);
+  box-shadow: var(--bevel-top), var(--shadow);
+}
+
+/* --------------------------------------------- Vellum: the lit vellum page */
+:root[data-gloss='glossy'][data-aesthetic='vellum'] { --gilt-spec: #fff4d6; }
+:root[data-gloss='glossy'][data-aesthetic='vellum'][data-theme='dark'] { --gilt-spec: #f0d99b; }
+
+/* A wash down from the top of the running head, and under it a gilt hairline
+   with the light caught in its centre. Both are painted, not laid out. */
+:root[data-gloss='glossy'][data-aesthetic='vellum'] .hdr {
+  border-bottom-color: transparent;
+  background-image:
+    linear-gradient(to bottom, var(--spec-hi), var(--spec-lo) 48%),
+    linear-gradient(90deg, transparent 4%, var(--accent-line) 22%,
+      var(--gilt-spec) 50%, var(--accent-line) 78%, transparent 96%);
+  background-size: 100% 100%, 100% 1px;
+  background-position: 0 0, 0 100%;
+  background-repeat: no-repeat, no-repeat;
+}
+/* The vesture ribbon gains a rounded edge. */
+:root[data-gloss='glossy'][data-aesthetic='vellum'] .litbar__swatch {
+  background-image: linear-gradient(to right, rgba(255, 255, 255, .45), rgba(0, 0, 0, .18));
+}
+
+/* ------------------------------------------- Still Point: the night office */
+/* Frosted panels with a lit top edge. */
+:root[data-gloss='glossy'][data-aesthetic='still-point'] .hdr,
+:root[data-gloss='glossy'][data-aesthetic='still-point'] .dock,
+:root[data-gloss='glossy'][data-aesthetic='still-point'] .sheet {
+  background-color: color-mix(in srgb, var(--bg) 70%, transparent);
+  backdrop-filter: saturate(165%) blur(20px);
+  box-shadow: inset 0 1px 0 var(--spec-hi), var(--shadow-lift);
+}
+/* The hour that is due now is a gold bead with a halo around it. */
+:root[data-gloss='glossy'][data-aesthetic='still-point'] .plan__row[data-state='now'] .plan__tick {
+  background: #d9b978;
+  border-color: #d9b978;
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, #d9b978 22%, transparent),
+    0 0 12px 2px color-mix(in srgb, #d9b978 55%, transparent);
+}
+
+/* ------------------------------------------ Green Modern: province lacquer */
+:root[data-gloss='glossy'][data-aesthetic='green-modern'] .hdr {
+  background-image: linear-gradient(158deg,
+    rgba(255, 255, 255, .17) 0%, rgba(255, 255, 255, .05) 34%, rgba(255, 255, 255, 0) 64%);
+}
+:root[data-gloss='glossy'][data-aesthetic='green-modern'] .dock {
+  background-image: linear-gradient(to bottom, rgba(255, 255, 255, .10), rgba(255, 255, 255, 0) 55%);
+}
+/* Bevelled cards: lit along the top, shadowed along the bottom. */
+:root[data-gloss='glossy'][data-aesthetic='green-modern'] .tile {
+  background-image: linear-gradient(to bottom, rgba(255, 255, 255, .14), rgba(255, 255, 255, 0) 52%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .20),
+    inset 0 -1px 0 rgba(0, 0, 0, .22),
+    var(--shadow-lift);
+}
+/* The action button, polished in four stops. */
+:root[data-gloss='glossy'][data-aesthetic='green-modern'] .btn--primary {
+  background-image: linear-gradient(180deg,
+    #f7eeda 0%, #ecdfc6 42%, #ddc9a4 74%, #ecdfc6 100%);
+}
+
+/* ------------------------------------------------------------- the guard */
+/* Whatever the finish, the surface a psalm is read off stays flat. Nothing
+   above may reach inside the reader, and this says so out loud. */
+:root[data-gloss='glossy'] .reader,
+:root[data-gloss='glossy'] .reader .blk,
+:root[data-gloss='glossy'] .ant,
+:root[data-gloss='glossy'] .strophe,
+:root[data-gloss='glossy'] .line,
+:root[data-gloss='glossy'] .para {
+  background-image: none;
+  box-shadow: none;
+}
+
+/* =========================================================================
+   THE DESK — a dark rail beside the page, from 64rem up
+   =========================================================================
+   Below 64rem the rail folds into a drawer and the app is exactly the phone
+   it always was. The reading column inside .reader is untouched by any of
+   this: the shell puts a sidebar next to the page, never inside the text. */
+
+:root {
+  --side-w: 264px;
+  --side-bg: #1e2320;
+  --side-ink: #e9e5db;
+  --side-muted: #9aa096;
+  --side-pill: linear-gradient(135deg, #5f7040 0%, #2f4433 100%);
+  --side-pill-ink: #f7f4ea;
+  --side-hair: rgba(255, 255, 255, .09);
+  --forest: #223b2c;
+  --forest-ink: #f2efe6;
+  --tan-cta: #e6d6ae;
+}
+:root[data-theme='dark'] { --forest: #17251d; }
+:root[data-aesthetic='still-point'] {
+  --side-bg: #12161b;
+  --side-ink: #e4e8ee;
+  --side-muted: #8e97a4;
+  --side-pill: linear-gradient(135deg, #46587a 0%, #22303f 100%);
+  --forest: #1c2b3a;
+  --tan-cta: #cfd8e4;
+}
+:root[data-aesthetic='green-modern'] {
+  --side-bg: var(--green-900);
+  --side-ink: var(--cream);
+  --side-muted: rgba(244, 238, 230, .64);
+  --side-pill: linear-gradient(135deg, #4f7f4a 0%, var(--green-600) 100%);
+  --side-pill-ink: #ffffff;
+  --forest: var(--green-800);
+  --forest-ink: var(--cream);
+  --tan-cta: var(--tan);
+}
+
+@media (min-width: 64rem) {
+  .app { display: grid; grid-template-columns: var(--side-w) minmax(0, 1fr); }
+  .app__body { min-width: 0; }
+}
+
+.side__scrim {
+  position: fixed; inset: 0; z-index: 69;
+  background: var(--overlay); border: 0; padding: 0;
+  animation: fade .16s ease-out;
+}
+
+.side {
+  position: fixed; inset: 0 auto 0 0; z-index: 70;
+  width: var(--side-w); max-width: 84vw;
+  display: flex; flex-direction: column;
+  padding: 1.1rem .75rem calc(1rem + env(safe-area-inset-bottom));
+  background: var(--side-bg); color: var(--side-ink);
+  overflow-y: auto; overscroll-behavior: contain;
+  transform: translateX(-100%);
+  transition: transform .22s ease;
+}
+.side[data-open='1'] { transform: none; }
+@media (prefers-reduced-motion: reduce) { .side { transition: none; } }
+
+@media (min-width: 64rem) {
+  .side { position: sticky; top: 0; height: 100dvh; max-width: none; transform: none; }
+  .side__scrim { display: none; }
+}
+
+.side__brand { display: flex; align-items: center; gap: .6rem; padding: .35rem .8rem 1.3rem; }
+.side__crest { display: grid; place-items: center; flex: none; color: var(--side-pill-ink); }
+.side__crest svg { width: 26px; height: 26px; }
+.side__wordmark b {
+  display: block; font-family: var(--font-display);
+  font-size: 1rem; font-weight: 600; letter-spacing: .01em; line-height: 1.15;
+}
+.side__wordmark small {
+  display: block; font-size: .62rem; letter-spacing: .17em;
+  text-transform: uppercase; color: var(--side-muted); margin-top: .12rem;
+}
+
+.side__nav { display: flex; flex-direction: column; gap: .15rem; }
+.side__nav--lower {
+  margin-top: auto; padding-top: .9rem;
+  border-top: 1px solid var(--side-hair);
+}
+.side__link {
+  display: flex; align-items: center; gap: .75rem; width: 100%;
+  min-height: 44px; padding: .6rem .8rem;
+  border-radius: 12px; text-align: left;
+  color: var(--side-muted);
+  font-family: var(--font-sans); font-size: .9rem; font-weight: 500;
+  transition: background .16s, color .16s;
+}
+.side__link:hover { color: var(--side-ink); background: rgba(255, 255, 255, .07); }
+.side__link:focus-visible { outline: 2px solid var(--side-ink); outline-offset: -2px; }
+.side__link[data-current='1'] {
+  background: var(--side-pill); color: var(--side-pill-ink); font-weight: 600;
+  box-shadow: 0 8px 20px -10px rgba(0, 0, 0, .7);
+}
+.side__icon { display: grid; place-items: center; flex: none; }
+.side__icon svg { width: 20px; height: 20px; }
+.side__label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side__foot {
+  padding: .95rem .8rem 0; margin: 0;
+  font-size: .66rem; line-height: 1.55; color: var(--side-muted);
+}
+
+/* ------------------------------------------------------------ the top bar */
+.hdr__back { display: none; }
+.hdr__search { display: none; }
+.hdr__rank { display: none; }
+
+@media (min-width: 64rem) {
+  .hdr__menu { display: none; }
+  .hdr__back { display: inline-grid; }
+  .hdr__find { display: none; }
+  .hdr__row { height: 72px; }
+  .hdr__title { flex: 0 1 auto; max-width: 32%; font-size: 1.15rem; }
+
+  .hdr__search {
+    display: flex; align-items: center; gap: .6rem;
+    flex: 1 1 auto; max-width: 420px; margin: 0 auto;
+    min-width: 0; padding: .6rem 1.05rem;
+    border: 1px solid var(--rule); border-radius: 999px;
+    background: var(--bg-raised);
+    color: var(--ink-faint); font-size: .87rem;
+  }
+  .hdr__search:hover { border-color: var(--accent-line); }
+  .hdr__search svg { width: 18px; height: 18px; flex: none; }
+  .hdr__search span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .hdr__rank {
+    display: inline-flex; align-items: center; gap: .45rem;
+    flex: none; padding: .38rem .75rem;
+    border: 1px solid var(--rule); border-radius: 999px;
+    background: var(--bg-raised);
+    font-family: var(--font-sans); font-size: .73rem; font-weight: 600;
+    color: var(--ink-soft); white-space: nowrap;
+  }
+
+  /* The dock belongs to the page, not to the rail beside it. */
+  .dock { left: calc(50% + var(--side-w) / 2); }
+}
+
+/* ------------------------------------------------------ the dashboard grid */
+.dashwrap {
+  max-width: 1180px; margin: 0 auto;
+  padding: 1.1rem clamp(.85rem, 3vw, 1.6rem) 3rem;
+}
+.dash { display: grid; gap: 1.4rem; }
+.dash__main, .dash__side { min-width: 0; }
+@media (min-width: 64rem) {
+  .dash {
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+    gap: 1.6rem; align-items: start;
+  }
+}
+.dash__pair { display: grid; gap: 1rem; }
+@media (min-width: 46rem) { .dash__pair { grid-template-columns: 1fr 1fr; } }
+
+.dash__h {
+  font-family: var(--font-display);
+  font-size: 1.25rem; font-weight: 700; letter-spacing: 0; line-height: 1.2;
+}
+.page__title {
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 4vw, 1.9rem); font-weight: 700; line-height: 1.15;
+}
+.linkbtn {
+  flex: none; font-family: var(--font-sans);
+  font-size: .8rem; font-weight: 600; color: var(--accent);
+}
+.linkbtn:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* The card is the unit the whole desk is built from. */
+.card {
+  background: var(--bg-raised);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.15rem;
+  box-shadow: var(--shadow);
+}
+.card__kicker {
+  margin: 0; font-family: var(--font-meta);
+  font-size: var(--meta-size); letter-spacing: var(--meta-track);
+  text-transform: uppercase; font-weight: 700; color: var(--ink-faint);
+}
+.card__title {
+  font-family: var(--font-display); font-size: 1.2rem; font-weight: 700;
+  line-height: 1.22; margin: .35rem 0 0;
+}
+.card__vesture {
+  margin: .7rem 0 0; font-size: .84rem; color: var(--ink-soft);
+  display: flex; align-items: center;
+}
+.card__muted { margin: .6rem 0 0; font-size: .85rem; color: var(--ink-faint); line-height: 1.5; }
+
+/* The two dark cards: what is due now, and what is coming. */
+.card--hero, .card--forest {
+  background: var(--forest); border-color: transparent; color: var(--forest-ink);
+  box-shadow: var(--shadow-lift);
+}
+.card--hero .card__kicker, .card--forest .card__kicker { color: var(--tan-cta); }
+.card--hero .hero__eyebrow { color: var(--tan-cta); font-weight: 600; }
+.hero__hour {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3.2vw, 1.95rem); font-weight: 700;
+  line-height: 1.1; margin: .3rem 0 .05rem;
+}
+.hero__latin { margin: 0 0 .55rem; font-style: italic; font-size: .9rem; opacity: .8; }
+.hero__incipit {
+  margin: 0 0 1.1rem; font-family: var(--font-serif);
+  font-size: 1rem; line-height: 1.5; opacity: .92;
+}
+.btn--pray {
+  background: var(--tan-cta); color: var(--forest);
+  border-color: transparent; font-weight: 700; padding: .7rem 1.5rem;
+  box-shadow: var(--shadow-lift);
+}
+.btn--pray:hover { background: var(--tan-cta); filter: brightness(1.05); }
+.hero__resume {
+  display: block; width: 100%; text-align: left; margin-top: .85rem;
+  font-size: .8rem; line-height: 1.45; color: rgba(255, 255, 255, .8);
+  text-decoration: underline; text-underline-offset: 3px;
+}
+
+.upcoming { list-style: none; margin: .55rem 0 0; padding: 0; }
+.upcoming button {
+  display: flex; align-items: baseline; gap: .55rem; width: 100%;
+  padding: .55rem 0; text-align: left; color: inherit;
+  border-bottom: 1px solid rgba(255, 255, 255, .12);
+}
+.upcoming li:last-child button { border-bottom: 0; }
+.upcoming__name { flex: 1; min-width: 0; font-size: .87rem; line-height: 1.35; }
+.upcoming__when { flex: none; font-size: .72rem; opacity: .72; white-space: nowrap; }
+
+/* One dot, in the colour of the day. */
+.seasondot, .upcoming__dot {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--lit-day); vertical-align: .05em; margin-right: .45rem; flex: none;
+}
+.upcoming__dot { margin-right: 0; align-self: center; }
+.seasondot[data-colour='white'], .upcoming__dot[data-colour='white'] { background: var(--lit-white); }
+.seasondot[data-colour='red'], .upcoming__dot[data-colour='red'] { background: var(--lit-red); }
+.seasondot[data-colour='green'], .upcoming__dot[data-colour='green'] { background: var(--lit-green); }
+.seasondot[data-colour='violet'], .upcoming__dot[data-colour='violet'] { background: var(--lit-violet); }
+.seasondot[data-colour='rose'], .upcoming__dot[data-colour='rose'] { background: var(--lit-rose); }
+.seasondot[data-colour='black'], .upcoming__dot[data-colour='black'] { background: var(--lit-black); }
+
+/* Stacked rows: today's psalms, and what was prayed lately. */
+.card--rows { padding: .15rem 1.15rem; }
+.psalmrow {
+  display: block; width: 100%; text-align: left;
+  padding: .9rem 0; border-bottom: 1px solid var(--rule);
+}
+.card--rows .psalmrow:last-child { border-bottom: 0; }
+.psalmrow:hover .psalmrow__ref { color: var(--accent); }
+.psalmrow__ref {
+  display: block; font-family: var(--font-display);
+  font-size: 1.05rem; font-weight: 700; line-height: 1.2;
+}
+.psalmrow__title {
+  display: block; margin-top: .15rem;
+  font-family: var(--font-meta); font-size: .68rem;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint);
+}
+.psalmrow__incipit {
+  display: block; margin-top: .3rem;
+  font-family: var(--font-serif); font-size: .88rem; color: var(--ink-soft);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* The hours list gains a Latin name and a word for where the day has got to. */
+.plan__latin {
+  display: block; font-family: var(--font-serif); font-style: italic;
+  font-weight: 400; font-size: .72rem; color: var(--ink-faint);
+}
+.plan__state {
+  flex: none; font-family: var(--font-sans);
+  font-size: .64rem; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--ink-faint);
+}
+.plan__row[data-state='now'] .plan__state { color: var(--accent); }
+/* Kept at every width: below 46rem the tick was the only cue, and a colour
+   on its own is not a cue (WCAG 1.4.1). */
+@media (max-width: 46rem) { .plan__state { font-size: .6rem; } }
+
+/* =========================================================================
+   ACCESSIBILITY PLUMBING
+   ========================================================================= */
+
+/* Native scrollbars, form controls and the caret follow the theme. */
+:root { color-scheme: light; }
+:root[data-theme='dark'] { color-scheme: dark; }
+
+/* Straight to the text, for anyone arriving by keyboard. Off-screen until
+   it is focused, which is the first thing Tab reaches. */
+.skip {
+  position: absolute; left: .6rem; top: .6rem; z-index: 90;
+  transform: translateY(-250%);
+  padding: .7rem 1.05rem; border-radius: 10px;
+  background: var(--accent); color: var(--accent-ink);
+  font-family: var(--font-sans); font-size: .85rem; font-weight: 700;
+  text-decoration: none;
+  transition: transform .16s ease;
+}
+.skip:focus-visible { transform: none; }
+
+/* main takes focus from the skip link but is not itself a control, so it
+   should not draw a ring when it is focused programmatically. */
+main:focus:not(:focus-visible) { outline: none; }
+
+/* The drawer is off-canvas when closed, and must not be reachable by Tab
+   while it is. Visibility flips at once on opening and only after the slide
+   has finished on closing, so the panel never disappears mid-animation. */
+.side { visibility: hidden; transition: transform .22s ease, visibility 0s .22s; }
+.side[data-open='1'] { visibility: visible; transition: transform .22s ease, visibility 0s 0s; }
+@media (min-width: 64rem) { .side { visibility: visible; transition: none; } }
+
+/* The sheet scrim became a button; it must still look like a plain wash. */
+.scrim { display: block; width: 100%; border: 0; padding: 0; cursor: default; }
+
+/* Everything a thumb can press reaches 44px. These are the stragglers the
+   audit measured: section action links, ghost buttons, the rows inside the
+   dark cards, and the skip link itself. */
+.linkbtn, .hero__resume {
+  display: inline-flex; align-items: center;
+  min-height: 44px;
+}
+.btn { min-height: 44px; }
+.upcoming button { min-height: 44px; }
+.skip { min-height: 44px; display: inline-flex; align-items: center; }
+.dock__jump { min-height: 44px; }
+.segmented button { min-height: 44px; }
+
+/* =========================================================================
+   READING POLISH, PAGE TURNS, AND THE QUICK JUMP
+   ========================================================================= */
+
+/* Orphans. text-wrap: pretty asks the browser not to leave a single word
+   alone on the last line of a stanza or a paragraph; balance evens a heading
+   across its lines. Both degrade to ordinary wrapping where unsupported. */
+.line, .para, .ant__text, .card__muted, .field__hint { text-wrap: pretty; }
+.h1, .h2, .reader__title, .page__title, .dash__h,
+.card__title, .hero__hour, .psalmrow__ref, .sheet__title { text-wrap: balance; }
+
+/* Numbers that sit in a column line up. */
+.strophe__n, .stepper__val, .cal__day, .upcoming__when { font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------------------ page turns */
+/* Only the content container is animated, never the wrapper: the reader dock
+   is position: fixed, and a transformed ancestor would turn it into an
+   absolutely positioned element halfway down the page. */
+@keyframes page-in {
+  from { opacity: 0; transform: translate3d(0, 8px, 0); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes page-in-deeper {
+  from { opacity: 0; transform: translate3d(14px, 0, 0); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes page-in-back {
+  from { opacity: 0; transform: translate3d(-14px, 0, 0); }
+  to { opacity: 1; transform: none; }
+}
+.pageview > .shell,
+.pageview > .dashwrap {
+  animation: page-in .24s cubic-bezier(.22, .61, .36, 1) both;
+  transform-origin: 50% 0;
+}
+.pageview[data-move='in'] > .shell { animation-name: page-in-deeper; }
+.pageview[data-move='out'] > .dashwrap { animation-name: page-in-back; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pageview > .shell, .pageview > .dashwrap { animation: none; }
+}
+
+/* ------------------------------------------------------------ quick jump */
+.quickjump {
+  display: block; width: 100%; text-align: left;
+  margin-top: .75rem; padding: .85rem 1rem;
+  border: 1px solid var(--accent-line); border-radius: var(--radius-sm);
+  background: var(--accent-wash);
+  min-height: 44px;
+}
+.quickjump:hover { border-color: var(--accent); }
+.quickjump__kicker {
+  display: block; font-family: var(--font-meta);
+  font-size: var(--meta-size); letter-spacing: var(--meta-track);
+  text-transform: uppercase; font-weight: 700; color: var(--accent);
+}
+.quickjump__ref {
+  display: block; margin-top: .15rem;
+  font-family: var(--font-display); font-size: 1.05rem; font-weight: 700;
+}
+.quickjump__ref em { font-style: normal; font-weight: 400; color: var(--ink-soft); }
+.quickjump__where { display: block; margin-top: .1rem; font-size: .78rem; color: var(--ink-faint); }
+.quickjump__hint {
+  display: block; margin-top: .35rem;
+  font-family: var(--font-sans); font-size: .7rem; color: var(--ink-faint);
+}

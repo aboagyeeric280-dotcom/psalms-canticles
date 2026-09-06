@@ -1,0 +1,40 @@
+{
+  "name": "psalms-app",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Daily Psalms and Canticles - Dominican prayer book PWA",
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run fonts && tsc -b && vite build && node tools/sw-build.mjs",
+    "preview": "vite preview",
+    "check": "node tools/check-calendar.mjs",
+    "check:sw": "node tools/check-sw.mjs",
+    "data": "node ../tools/parse.js && node ../tools/regroup.js --write && node ../tools/audit.js && node ../tools/split.js && node ../tools/check-canticles.js",
+    "plates": "node ../tools/render/plates.mjs",
+    "icons": "node ../tools/icons.mjs public/icons",
+    "check:all": "npm run check && npm run check:calendar && npm run check:office && npm run check:sw && node ../tools/check-canticles.js",
+    "lines": "node ../tools/render/lines.mjs",
+    "canticles": "node ../tools/canticles.js",
+    "package": "npm run build && node tools/package.mjs",
+    "check:calendar": "node tools/check-sanctoral.mjs",
+    "check:office": "node tools/check-office.mjs",
+    "fonts": "node tools/fonts.mjs"
+  },
+  "dependencies": {
+    "@fontsource/cormorant-garamond": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/newsreader": "^5.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@fontsource/cinzel": "^5.3.0",
+    "@fontsource/eb-garamond": "^5.3.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.6.3",
+    "vite": "^6.0.5"
+  }
+}

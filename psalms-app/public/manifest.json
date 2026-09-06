@@ -1,0 +1,50 @@
+{
+  "name": "Daily Psalms and Canticles",
+  "short_name": "Psalms",
+  "description": "The Dominican four-week psalter of the Province of St Joseph the Worker, Nigeria & Ghana. Morning, Midday, Evening Prayer, Compline and the Office of Readings, complete offline.",
+  "id": "./",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#faf8f4",
+  "theme_color": "#faf8f4",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["books", "lifestyle", "education"],
+  "icons": [
+    { "src": "./icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "screenshots": [
+    {
+      "src": "./screenshots/home.png",
+      "sizes": "412x915",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "The hour to pray now, the psalter week and the season"
+    },
+    {
+      "src": "./screenshots/reader.png",
+      "sizes": "412x915",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Morning Prayer, with the antiphon of the season and the two choirs marked"
+    },
+    {
+      "src": "./screenshots/wide.png",
+      "sizes": "1280x800",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "The reader on a laptop"
+    }
+  ],
+  "shortcuts": [
+    { "name": "Morning Prayer", "url": "./index.html#/", "description": "Lauds" },
+    { "name": "Evening Prayer", "url": "./index.html#/", "description": "Vespers" },
+    { "name": "Compline", "url": "./index.html#/compline", "description": "Night Prayer" },
+    { "name": "Find a psalm", "url": "./index.html#/tables", "description": "Index of psalms" }
+  ]
+}

@@ -1,0 +1,21 @@
+# dependencies
+node_modules/
+
+# build output (GitHub Actions rebuilds this on every push)
+dist/
+*.tsbuildinfo
+
+# generated / local-only
+tools/render/out/
+.playwright-mcp/
+psalms-app-dist.zip
+*.zip
+test psalm/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# machine-local skill links (Windows junctions)
+.claude/skills/
+.agents/
