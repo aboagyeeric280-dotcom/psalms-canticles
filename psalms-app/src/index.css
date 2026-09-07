@@ -630,10 +630,57 @@ a { color: inherit; }
   background: var(--bg); color: var(--ink);
 }
 .search__input::placeholder { color: var(--ink-faint); }
-.result { display: block; width: 100%; text-align: left; padding: .65rem .1rem; border-bottom: 1px solid var(--rule); }
-.result:hover .result__name { color: var(--accent); }
+.search__filters { margin-top: .6rem; }
+.search__hint em { font-style: normal; color: var(--ink-soft); }
+/* Only the row that carries an action beside its label is laid out across. */
+.search__hint--row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: .5rem;
+}
+.search__count {
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between;
+  gap: .4rem; margin: 1rem 0 .25rem;
+  font-family: var(--font-meta); font-size: var(--meta-size);
+  letter-spacing: var(--meta-track); text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.search__count em { font-style: normal; color: var(--accent); text-transform: none; letter-spacing: 0; }
+.linkbtn {
+  font-family: var(--font-sans); font-size: .74rem; color: var(--accent);
+  text-decoration: underline; text-underline-offset: 2px;
+}
+
+.results { display: flex; flex-direction: column; }
+.result__wrap { border-bottom: 1px solid var(--rule); }
+.result { display: block; width: 100%; text-align: left; padding: .65rem .1rem; }
+.result:hover .result__name, .result[data-current='1'] .result__name { color: var(--accent); }
+.result[data-current='1'] {
+  background: var(--accent-wash);
+  box-shadow: inset 3px 0 0 var(--accent-line);
+}
 .result__name { display: block; font-family: var(--font-serif); font-size: 1rem; }
+/* The line the words were found in, quoted as the book prints it. */
+.result__line {
+  display: block; margin-top: .15rem;
+  font-family: var(--font-reader); font-size: .88rem; line-height: 1.45;
+  color: var(--ink-soft);
+}
+.result__line mark {
+  background: var(--accent-wash); color: var(--ink);
+  font-weight: 600; border-radius: 3px; padding: 0 .1em;
+  box-shadow: 0 1px 0 var(--accent-line);
+}
 .result__where { display: block; font-size: .75rem; color: var(--ink-faint); margin-top: .1rem; }
+.result__more {
+  display: block; width: 100%; text-align: left;
+  padding: 0 .1rem .55rem; font-size: .72rem; color: var(--accent);
+}
+.result__others { padding: 0 .1rem .5rem; }
+.result__other {
+  display: block; width: 100%; text-align: left;
+  padding: .4rem .1rem .4rem .9rem; font-size: .8rem; color: var(--ink-soft);
+  border-left: 2px solid var(--rule);
+}
+.result__other:hover { color: var(--accent); border-left-color: var(--accent-line); }
 .empty { padding: 2rem 1rem; text-align: center; color: var(--ink-faint); font-size: .875rem; }
 
 .toc { display: flex; flex-direction: column; }
@@ -1868,4 +1915,28 @@ main:focus:not(:focus-visible) { outline: none; }
 .quickjump__hint {
   display: block; margin-top: .35rem;
   font-family: var(--font-sans); font-size: .7rem; color: var(--ink-faint);
+}
+
+/* ------------------------------------------------- a line found by searching */
+/* The reader is put on the line itself, so the words have to be findable by
+   eye the moment the page settles — and then get out of the way. Marks are
+   kept off the reading surface's own colours: a wash and a rule, never a
+   block of highlighter across the psalm. */
+.reader mark.found {
+  background: var(--accent-wash);
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 .08em;
+  box-shadow: inset 0 -2px 0 var(--accent-line);
+}
+
+.reader [data-hit='1'] { animation: found-settle 2.4s ease-out 1; }
+
+@keyframes found-settle {
+  0%, 45% { background: var(--accent-wash); }
+  100% { background: transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader [data-hit='1'] { animation: none; }
 }

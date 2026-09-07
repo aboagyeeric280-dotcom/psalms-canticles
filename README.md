@@ -38,14 +38,50 @@ that serves files over HTTPS will do. Nothing runs on a server.
 | `#/` | Dashboard: the hour to pray now, psalter week, season, everything else |
 | `#/office/w{1-4}-{day}-{hour}` | 84 offices — Morning, Midday, Evening and the Sunday Evening Before, Weeks I–IV |
 | `#/readings/{id}` | 28 Office of Readings sections plus 4 seasonal extended psalms (78, 105, 106) |
-| `#/compline` | Night Prayer, assembled end to end for the evening in hand |
+| `#/compline`, `#/compline/{day}` | Night Prayer, assembled end to end for the evening in hand — the day is optional, and search results carry it |
 | `#/dominican` | Compline supplements: Salve Regina, O Lumen, Inviolata, Regina Caeli, Magne Pater, the Twi and Lingala hymns, De Profundis, Litany of Loreto |
-| `#/canticle/zechariah`, `#/canticle/mary` | Nine settings each of the Benedictus and the Magnificat |
+| `#/canticle/zechariah`, `#/canticle/mary` | Nine settings each of the Benedictus and the Magnificat; a trailing `/{n}` opens one setting |
 | `#/feasts/common`, `#/feasts/proper` | Evening Prayer for the commons and for Christmas through Christ the King |
 | `#/invitatory`, `#/te-deum`, `#/midday-hymns` | The frequently-used texts |
 | `#/prayers` | The 34 weekly collects, and the Good Friday / Holy Saturday intercessions |
 | `#/tables` | The book's own psalm index and feast-day psalm tables |
 | `#/about` | Foreword, the order of the hours, the psalm tones |
+
+## Searching the book
+
+The search button in the header reads the text itself — every line of every
+psalm, canticle, antiphon, hymn, collect and rubric the app can open, about
+14,000 searchable lines built into an index the first time the sheet is
+opened (roughly a tenth of a second, once).
+
+- **A phrase opens on its own line.** A result is not a page: it is a place.
+  Choosing one opens the text, scrolls to the very line the words are printed
+  on, sets it a third of the way down the screen so the verses around it are
+  in view, and marks the words. Nothing has to be scrolled for.
+- **A phrase may run over a line break.** The book breaks its verses where
+  the singing breaks them, and no one remembers where the line ended, so each
+  strophe is searchable whole as well as line by line.
+- **Pointing does not get in the way.** The tone slashes, the flex asterisk,
+  the dagger, accents and apostrophes are all normalised away for matching —
+  "God's love" finds `God’s / love,*` — and never altered on the page.
+- **A number is a lookup.** `23`, `Psalm 23`, `ps 119` go straight to the
+  psalm; `119:105` picks the section that prints that verse.
+- **Exact first, then a fallback.** An exact phrase ranks first and is what
+  Enter opens. Failing that: every word in another order, then near
+  spellings (one or two letters wrong), then the lines holding most of what
+  was typed, with rarer words weighted higher — "waters of Babylon" still
+  reaches "By the rivers of Babylon". Quotation marks demand the phrase
+  exactly and suppress every fallback.
+- **Repeats collapse.** The psalter prints Psalm 118 many times; one answer
+  carries the others under "also in N other places".
+- **Filters and keys.** Everything / Psalms / Canticles / Antiphons /
+  Prayers / Rubrics; ↑ ↓ to walk the results, Enter to open, Escape to close.
+  Recent searches are kept.
+
+The index is built at run time from the same block lists the reader
+components render (`src/data/pageBlocks.ts`), so a result's anchor is always
+an anchor that exists on the page. `npm run check:search` asserts that, along
+with the matching itself.
 
 ## Reading experience
 

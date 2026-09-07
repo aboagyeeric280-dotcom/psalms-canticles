@@ -1,28 +1,12 @@
 import { useMemo, useState } from 'react';
 import OfficeReader from './OfficeReader';
-import compline from '../data/compline.json';
+import type { FocusMark } from './Blocks';
+import { complineBlocks, complinePrefix } from '../data/pageBlocks';
 import { DAY_KEYS, DAY_NAMES, complineDayKey } from '../utils/liturgicalCalendar';
 import type { Block, DayKey } from '../types';
 import type { Prefs } from '../utils/storage';
 import { liturgicalToday } from '../utils/generalCalendar';
 import LiturgicalHeader from './LiturgicalHeader';
-
-interface Data {
-  opening: Block[];
-  days: { key: DayKey; title: string; blocks: Block[] }[];
-  readings: { key: string; day: string; ref: string; blocks: Block[] }[];
-  responsory: Block[];
-  simeon: Block[];
-  collects: { key: string; blocks: Block[] }[];
-  blessing: Block[];
-  supplementary: Block[];
-}
-const C = compline as unknown as Data;
-
-const COLLECT_KEY: Record<DayKey, string> = {
-  sun: 'Sunday', mon: 'Monday', tue: 'Tuesday', wed: 'Wednesday',
-  thu: 'Thursday', fri: 'Friday', sat: 'Saturday',
-};
 
 interface Props {
   season: string;
@@ -33,45 +17,23 @@ interface Props {
   onCycleTheme?: () => void;
   latin?: string;
   resumeKey?: string;
+  focus?: FocusMark | null;
+  /** The evening to open on. Compline follows the clock unless a route — a
+      search result, say — names another day. */
+  day?: DayKey;
 }
 
 /** Compline is the one hour the book prints whole, so the app assembles it
     end to end for the evening in hand. */
 export default function ComplineView({
-  season, prefs, onGo, onProgress, onSize, onCycleTheme, latin, resumeKey,
+  season, prefs, onGo, onProgress, onSize, onCycleTheme, latin, resumeKey, focus,
+  day: asked,
 }: Props) {
   const today = useMemo(() => complineDayKey(), []);
-  const [day, setDay] = useState<DayKey>(today);
+  const [day, setDay] = useState<DayKey>(asked ?? today);
   const [solemn, setSolemn] = useState(false);
 
-  const blocks = useMemo<Block[]>(() => {
-    const psalmSetKey: DayKey = solemn ? (day === 'sat' ? 'sat' : 'sun') : day;
-    const psalms = C.days.find(d => d.key === psalmSetKey)?.blocks ?? [];
-    const reading = C.readings.find(r => r.key === day.toLowerCase());
-    const collect = C.collects.find(c => c.key === (solemn ? 'Solemn Feasts' : COLLECT_KEY[day]))
-      ?? C.collects.find(c => c.key === COLLECT_KEY[day]);
-
-    const head = (text: string): Block => ({ k: 'head', text, level: 1 });
-
-    return [
-      head('Opening Prayers'),
-      ...C.opening,
-      head('Psalmody'),
-      ...psalms,
-      head('Short Reading'),
-      ...(reading
-        ? [{ k: 'reading', day: reading.day, ref: reading.ref } as Block, ...reading.blocks]
-        : []),
-      head('Responsory'),
-      ...C.responsory,
-      head('Canticle of Simeon'),
-      ...C.simeon,
-      head('Prayer'),
-      ...(collect?.blocks ?? []),
-      head('Blessing'),
-      ...C.blessing,
-    ];
-  }, [day, solemn]);
+  const blocks = useMemo<Block[]>(() => complineBlocks(day, solemn), [day, solemn]);
 
   return (
     <OfficeReader
@@ -87,7 +49,8 @@ export default function ComplineView({
       onCycleTheme={onCycleTheme}
       latin={latin}
       resumeKey={resumeKey}
-      idPrefix={`compline-${day}-${solemn ? 's' : 'f'}`}
+      focus={focus}
+      idPrefix={complinePrefix(day, solemn)}
       intro={
         <div className="blk">
           <LiturgicalHeader day={liturgicalToday()} compact />

@@ -12,9 +12,12 @@ import {
 } from './components/Pages';
 
 import { OFFICES, READINGS, neighbours } from './data/offices';
+import type { FocusMark } from './components/Blocks';
+import type { Target } from './utils/search';
+import type { DayKey } from './types';
 
 import { HOUR_SHAPE, READINGS_SHAPE } from './data/ordinary';
-import { HOUR_NAMES, ROMAN, liturgicalDay } from './utils/liturgicalCalendar';
+import { DAY_KEYS, HOUR_NAMES, ROMAN, liturgicalDay } from './utils/liturgicalCalendar';
 import { loadObserved, pushRecent, saveObserved, usePrefs } from './utils/storage';
 import { scrollToTop } from './utils/scroll';
 import { latinHour } from './utils/hours';
@@ -41,6 +44,10 @@ export default function App() {
   const [route, go] = useHashRoute();
   const [prefs, updatePrefs] = usePrefs();
   const [showSearch, setShowSearch] = useState(false);
+  /* Where a search asked to be taken. It is held beside the route rather
+     than written into it: the route names the text, and the reading mark,
+     the section picker and the browser's own history all key off that. */
+  const [found, setFound] = useState<(Target & { at: number }) | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -69,7 +76,19 @@ export default function App() {
   useEffect(() => { window.scrollTo(0, 0); setProgress(0); }, [route]);
 
   const parts = route.replace(/^#\/?/, '').split('/').filter(Boolean);
-  const [head, arg] = parts;
+  const [head, arg, arg2] = parts;
+
+  /* Take a search result to its own line. The page is opened first; the
+     reader it renders scrolls to the line and marks the words. */
+  const goToFound = useCallback((target: Target) => {
+    setFound({ ...target, at: Date.now() });
+    go(target.route);
+  }, [go]);
+
+  // The mark belongs to the text it was found in, and to no other.
+  const focus: FocusMark | null = found && found.route === route && found.anchor
+    ? { anchor: found.anchor, s: found.s, l: found.l, terms: found.terms }
+    : null;
 
   const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
   const readerControls = {
@@ -84,7 +103,9 @@ export default function App() {
     },
   };
 
-  const pageProps = { season: antiphonSeason, prefs, onGo: go, onProgress: setProgress, ...readerControls };
+  const pageProps = {
+    season: antiphonSeason, prefs, onGo: go, onProgress: setProgress, focus, ...readerControls,
+  };
 
   let title = 'Daily Psalms and Canticles';
   let kicker: string | undefined;
@@ -165,10 +186,14 @@ export default function App() {
   } else if (head === 'compline') {
     title = 'Compline';
     kicker = 'Bedtime Prayer';
-    body = <ComplineView {...pageProps} latin={latinHour('compline')} resumeKey={route} />;
+    // A search may name the evening whose psalms it found the words in.
+    const day = DAY_KEYS.includes(arg as DayKey) ? (arg as DayKey) : undefined;
+    body = (
+      <ComplineView {...pageProps} day={day} latin={latinHour('compline')} resumeKey={route} />
+    );
   } else if (head === 'canticle' && (arg === 'zechariah' || arg === 'mary')) {
     title = arg === 'zechariah' ? 'Canticle of Zechariah' : 'Canticle of Mary';
-    body = <CanticlePage which={arg} {...pageProps} />;
+    body = <CanticlePage which={arg} setting={Number(arg2) || 0} {...pageProps} />;
   } else if (head === 'invitatory') {
     title = 'Invitatory'; body = <InvitatoryPage {...pageProps} />;
   } else if (head === 'te-deum') {
@@ -253,7 +278,7 @@ export default function App() {
 
       </div>
 
-      {showSearch && <IndexModal onClose={() => setShowSearch(false)} onGo={go} />}
+      {showSearch && <IndexModal onClose={() => setShowSearch(false)} onJump={goToFound} />}
       {showSettings && (
         <SettingsDrawer prefs={prefs} update={updatePrefs} onClose={() => setShowSettings(false)} />
       )}

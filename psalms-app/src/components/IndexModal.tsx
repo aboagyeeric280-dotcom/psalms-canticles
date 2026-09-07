@@ -1,169 +1,284 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Sheet from './Sheet';
-import search from '../data/search.json';
 import indices from '../data/indices.json';
-import type { SearchEntry } from '../types';
+import {
+  FILTERS, getIndex, landmarkFor, search, snippet, targetOf,
+  type Filter, type Group, type Hit, type Target, type Unit,
+} from '../utils/search';
+import { clearSearches, loadSearches, pushSearch } from '../utils/storage';
 
-const ENTRIES = search as SearchEntry[];
 const PSALM_INDEX = (indices as unknown as {
   psalms: { label: string; num: number; pages: string[] }[];
 }).psalms;
 
-/** Destinations the book keeps whole, which the psalm index therefore never
-    lists: the gospel canticles and the other sung texts. Searching for
-    "Magnificat" ought to find something. */
-interface Named { aliases: string[]; ref: string; title: string; route: string; where: string }
+/** What a result is, in a word, when it has no reference of its own. */
+const KIND_NAME: Record<Unit['kind'], string> = {
+  psalm: 'Psalm', canticle: 'Canticle', antiphon: 'Antiphon',
+  prayer: 'Prayer', rubric: 'Rubric',
+};
 
-const NAMED: Named[] = [
-  {
-    aliases: ['zechariah', 'benedictus'], ref: 'Canticle of Zechariah', title: 'Benedictus',
-    route: '#/canticle/zechariah', where: 'Nine settings · at Morning Prayer',
-  },
-  {
-    aliases: ['mary', 'magnificat'], ref: 'Canticle of Mary', title: 'Magnificat',
-    route: '#/canticle/mary', where: 'Nine settings · at Evening Prayer',
-  },
-  {
-    aliases: ['simeon', 'nunc dimittis'], ref: 'Canticle of Simeon', title: 'Nunc Dimittis',
-    route: '#/compline', where: 'At Compline',
-  },
-  {
-    aliases: ['te deum'], ref: 'Te Deum', title: 'The Church’s Hymn of Praise',
-    route: '#/te-deum', where: 'Office of Readings',
-  },
-  {
-    aliases: ['invitatory', 'venite'], ref: 'Invitatory', title: 'Psalm 95 with its antiphons',
-    route: '#/invitatory', where: 'Before the first hour of the day',
-  },
-  {
-    aliases: ['salve regina', 'o lumen'], ref: 'Compline Supplements', title: 'Salve Regina, O Lumen',
-    route: '#/dominican', where: 'Dominican Compline',
-  },
-];
+/** The line printed above the results, saying how the answer was reached. */
+const MODE_NOTE: Record<string, string> = {
+  reference: 'By number',
+  phrase: 'Printed exactly as you typed it',
+  words: 'Every word, in another order',
+  near: 'Nothing printed exactly — the nearest spelling',
+  loose: 'Nothing printed exactly — the closest lines',
+};
 
-interface Props { onClose: () => void; onGo: (route: string) => void }
+interface Props {
+  onClose: () => void;
+  /** Open a text at the exact line, with the words picked out. */
+  onJump: (target: Target) => void;
+}
 
-/** Instant jump: type a psalm number ("51", "119:33"), a canticle name
-    ("Magnificat"), or any word of a title. */
-export default function IndexModal({ onClose, onGo }: Props) {
+/** Search the whole book: a phrase from any psalm, a psalm number, a verse
+    reference, or the name of a canticle. Every answer opens on its own line
+    rather than at the top of the hour that prints it. */
+export default function IndexModal({ onClose, onJump }: Props) {
   const [q, setQ] = useState('');
-  const query = q.trim().toLowerCase();
+  const [filter, setFilter] = useState<Filter>('all');
+  const [ready, setReady] = useState(false);
+  const [cursor, setCursor] = useState(-1);
+  const [opened, setOpened] = useState<string | null>(null);
+  const [recent, setRecent] = useState<string[]>(loadSearches);
+  const listRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  /* One obvious destination, offered straight away and bound to Enter. */
-  const jump = useMemo(() => {
-    if (!query) return null;
+  /* The whole book is read into an index the first time the sheet opens.
+     It takes a moment on an old phone, so it happens off the paint. */
+  useEffect(() => {
+    const build = () => { getIndex(); setReady(true); };
+    const idle = (window as unknown as {
+      requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
+    }).requestIdleCallback;
+    if (idle) { const h = idle(build, { timeout: 300 }); return () => cancelIdleCallback(h); }
+    const t = window.setTimeout(build, 0);
+    return () => window.clearTimeout(t);
+  }, []);
 
-    const named = NAMED.find(c => c.aliases.some(
-      a => a === query || (query.length >= 3 && a.startsWith(query))));
-    if (named) return { ...named, also: 0 };
+  const query = q.trim();
+  const landmark = useMemo(() => (query ? landmarkFor(query) : null), [query]);
 
-    // "63" and "119:33" both mean psalm 119; anything else is a word search.
-    if (/^\d{1,3}(:[\d\s,–-]*)?$/.test(query)) {
-      const n = Number(/^\d{1,3}/.exec(query)![0]);
-      const hits = ENTRIES.filter(e => e.num === n);
-      if (hits.length) {
-        const h = hits[0];
-        return { ref: h.ref, title: h.title || '', route: h.route, where: h.where, also: hits.length - 1 };
+  const outcome = useMemo(
+    () => (ready && query ? search(query, filter) : { groups: [], total: 0, mode: null }),
+    [ready, query, filter]);
+
+  const { groups, total, mode } = outcome;
+
+  /* One obvious destination, bound to Enter. A named canticle wins — nothing
+     else answers "Magnificat" — and otherwise the best-scoring line does. */
+  const jump: { target: Target; ref: string; title: string; where: string; also: number } | null =
+    useMemo(() => {
+      if (landmark) {
+        return {
+          target: { route: landmark.route, anchor: '', terms: [], label: landmark.ref },
+          ref: landmark.ref, title: landmark.title, where: landmark.where, also: 0,
+        };
       }
+      const g = groups[0];
+      if (!g) return null;
+      const u = g.best.unit;
+      return {
+        target: targetOf(g.best),
+        ref: u.ref || KIND_NAME[u.kind],
+        title: u.head ? (u.title ?? '') : u.text,
+        where: u.where,
+        also: g.others.length,
+      };
+    }, [landmark, groups]);
+
+  useEffect(() => { setCursor(-1); setOpened(null); }, [query, filter]);
+
+  const go = (target: Target, term = query) => {
+    setRecent(pushSearch(term));
+    onJump(target);
+    onClose();
+  };
+
+  /* The keys are read for the whole sheet, not only the box: after choosing
+     a filter or reaching for a result the arrows must still work. Enter is
+     left to the buttons themselves, which have their own. */
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      if ((e.target as HTMLElement).tagName !== 'INPUT') return;
+      e.preventDefault();
+      if (cursor >= 0 && groups[cursor]) go(targetOf(groups[cursor].best));
+      else if (jump) go(jump.target);
+      return;
     }
-    return null;
-  }, [query]);
-
-  const results = useMemo(() => {
-    if (!query) return [];
-    const numeric = /^\d+$/.test(query);
-    const scored = ENTRIES.map(e => {
-      const ref = e.ref.toLowerCase();
-      const title = (e.title || '').toLowerCase();
-      let score = 0;
-      if (numeric && e.num === Number(query)) score = 100;
-      else if (ref.startsWith(`psalm ${query}`)) score = 90;
-      else if (ref.includes(query)) score = 60;
-      else if (title.includes(query)) score = 40;
-      else if (e.where.toLowerCase().includes(query)) score = 20;
-      return { e, score };
-    }).filter(r => r.score > 0);
-
-    // The whole texts join the list, so a name search is not a dead end.
-    const named = NAMED
-      .filter(c => c.aliases.some(a => a.includes(query) || query.includes(a)))
-      .map(c => ({
-        e: { t: 'canticle', ref: c.ref, title: c.title, route: c.route, where: c.where } as SearchEntry,
-        score: 95,
-      }));
-
-    const all = [...named, ...scored];
-    all.sort((a, b) => b.score - a.score || a.e.where.localeCompare(b.e.where));
-    return all.slice(0, 60).map(r => r.e);
-  }, [query]);
-
-  const go = (route: string) => { onGo(route); onClose(); };
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    e.preventDefault();
+    inputRef.current?.focus();
+    setCursor(c => {
+      const next = e.key === 'ArrowDown' ? c + 1 : c - 1;
+      const at = Math.max(-1, Math.min(groups.length - 1, next));
+      listRef.current?.querySelectorAll('.result')[at]
+        ?.scrollIntoView({ block: 'nearest' });
+      return at;
+    });
+  };
 
   const psalmNumbers = useMemo(() => {
-    const byNum = new Map<number, string[]>();
-    for (const e of PSALM_INDEX) {
-      if (!byNum.has(e.num)) byNum.set(e.num, []);
-      byNum.get(e.num)!.push(...e.pages);
-    }
-    return [...byNum.keys()].sort((a, b) => a - b);
+    const seen = new Set<number>();
+    for (const e of PSALM_INDEX) seen.add(e.num);
+    return [...seen].sort((a, b) => a - b);
   }, []);
 
   return (
-    <Sheet title="Find a psalm" onClose={onClose}>
+    <Sheet title="Search the book" onClose={onClose}>
+      <div className="searchpane" onKeyDown={onKeyDown}>
       <input
+        ref={inputRef}
         className="search__input"
         type="search"
-        placeholder="Psalm number, canticle name, or a word from the title…"
+        placeholder="A line, a psalm number, or a canticle name…"
         value={q}
         onChange={e => setQ(e.target.value)}
-        onKeyDown={e => {
-          if (e.key === 'Enter' && jump) { e.preventDefault(); go(jump.route); }
-        }}
         inputMode="search"
         autoComplete="off"
-        aria-label="Search"
+        aria-label="Search the whole book"
       />
 
+      <div className="chiprow search__filters">
+        {FILTERS.map(f => (
+          <button key={f.key} className="chip" aria-pressed={filter === f.key}
+            onClick={() => { setFilter(f.key); inputRef.current?.focus(); }}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+
       {jump && (
-        <button className="quickjump" onClick={() => go(jump.route)}>
+        <button className="quickjump" onClick={() => go(jump.target)}>
           <span className="quickjump__kicker">Go straight to</span>
           <span className="quickjump__ref">
             {jump.ref}{jump.title ? <em> · {jump.title}</em> : null}
           </span>
           <span className="quickjump__where">
-            {jump.where}{jump.also > 0 ? ` · and ${jump.also} more place${jump.also > 1 ? 's' : ''}` : ''}
+            {jump.where}
+            {jump.also > 0 ? ` · and ${jump.also} more place${jump.also > 1 ? 's' : ''}` : ''}
           </span>
           <span className="quickjump__hint">Press Enter</span>
         </button>
       )}
 
-      {query ? (
-        results.length ? (
-          <div style={{ marginTop: '.75rem' }}>
-            {results.map((r, i) => (
-              <button key={i} className="result" onClick={() => go(r.route)}>
-                <span className="result__name">
-                  {r.ref}{r.title ? <span style={{ opacity: .65 }}> · {r.title}</span> : null}
-                </span>
-                <span className="result__where">{r.where}</span>
-              </button>
-            ))}
-          </div>
-        ) : <p className="empty">Nothing found for “{q.trim()}”.</p>
-      ) : (
+      {query && !ready && <p className="empty">Reading the book…</p>}
+
+      {query && ready && (
+        groups.length ? (
+          <>
+            <p className="search__count">
+              <span>
+                {groups.length} {groups.length === 1 ? 'answer' : 'answers'}
+                {total > groups.length ? ` · ${total} places` : ''}
+              </span>
+              {mode && MODE_NOTE[mode] ? <em>{MODE_NOTE[mode]}</em> : null}
+            </p>
+            <div className="results" ref={listRef}>
+              {groups.map((g, i) => (
+                <Result
+                  key={g.key}
+                  group={g}
+                  current={i === cursor}
+                  open={opened === g.key}
+                  onToggle={() => setOpened(o => (o === g.key ? null : g.key))}
+                  onGo={hit => go(targetOf(hit))}
+                />
+              ))}
+            </div>
+          </>
+        ) : <p className="empty">Nothing in the book answers to “{query}”.</p>
+      )}
+
+      {!query && (
         <>
-          <p className="field__hint" style={{ margin: '1rem 0 .6rem' }}>
+          {recent.length > 0 && (
+            <>
+              <p className="field__hint search__hint search__hint--row">
+                Looked for lately
+                <button className="linkbtn" onClick={() => setRecent(clearSearches())}>Clear</button>
+              </p>
+              <div className="chiprow">
+                {recent.map(r => (
+                  <button key={r} className="chip"
+                    onClick={() => { setQ(r); inputRef.current?.focus(); }}>
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          <p className="field__hint search__hint" style={{ marginTop: '1rem' }}>
+            Type any line of the book — “the Lord is my shepherd” — or a reference such as
+            <em> Psalm 119:105</em>. Put quotation marks round a phrase to demand it exactly.
+          </p>
+
+          <p className="field__hint search__hint" style={{ margin: '1rem 0 .6rem' }}>
             Or pick a psalm by number — the numbers below are those the book’s index lists.
           </p>
           <div className="grid2">
             {psalmNumbers.map(n => (
-              <button key={n} className="psalmbtn" onClick={() => setQ(String(n))}>
+              <button key={n} className="psalmbtn"
+                onClick={() => { setQ(String(n)); inputRef.current?.focus(); }}>
                 {n}
               </button>
             ))}
           </div>
         </>
       )}
+      </div>
     </Sheet>
+  );
+}
+
+/* -------------------------------------------------------------- one answer */
+
+interface ResultProps {
+  group: Group;
+  current: boolean;
+  open: boolean;
+  onToggle: () => void;
+  onGo: (hit: Hit) => void;
+}
+
+function Result({ group, current, open, onToggle, onGo }: ResultProps) {
+  const { best, others } = group;
+  const u = best.unit;
+  const name = u.ref
+    ? `${u.ref}${u.title ? ` — ${u.title}` : ''}`
+    : `${KIND_NAME[u.kind]}${u.title ? ` — ${u.title}` : ''}`;
+
+  return (
+    <div className="result__wrap">
+      <button className="result" data-current={current ? '1' : '0'} onClick={() => onGo(best)}>
+        <span className="result__name">{name}</span>
+        {!u.head && (
+          <span className="result__line">
+            {snippet(u.text, best.terms).map((f, i) =>
+              f.hit ? <mark key={i}>{f.text}</mark> : <span key={i}>{f.text}</span>)}
+          </span>
+        )}
+        <span className="result__where">{u.where}</span>
+      </button>
+
+      {others.length > 0 && (
+        <>
+          <button className="result__more" aria-expanded={open} onClick={onToggle}>
+            {open ? 'Hide' : `Also in ${others.length} other place${others.length > 1 ? 's' : ''}`}
+          </button>
+          {open && (
+            <div className="result__others">
+              {others.map((h, i) => (
+                <button key={i} className="result__other" onClick={() => onGo(h)}>
+                  {h.unit.where}
+                </button>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
   );
 }

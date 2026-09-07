@@ -163,3 +163,27 @@ export function pushRecent(route: string, title: string) {
   list.unshift({ route, title, at: Date.now() });
   save(RECENT_KEY, list.slice(0, 8));
 }
+
+/* ------------------------------------------------------ recent searches */
+/* What was looked for last, so looking for it again is one tap. */
+const SEARCHES_KEY = 'dpc.searches';
+
+export function loadSearches(): string[] {
+  try {
+    const list = JSON.parse(localStorage.getItem(SEARCHES_KEY) || '[]');
+    return Array.isArray(list) ? list.filter(s => typeof s === 'string').slice(0, 8) : [];
+  } catch { return []; }
+}
+
+export function pushSearch(q: string): string[] {
+  const term = q.trim();
+  if (term.length < 2) return loadSearches();
+  const list = [term, ...loadSearches().filter(s => s.toLowerCase() !== term.toLowerCase())].slice(0, 8);
+  save(SEARCHES_KEY, list);
+  return list;
+}
+
+export function clearSearches(): string[] {
+  save(SEARCHES_KEY, []);
+  return [];
+}
