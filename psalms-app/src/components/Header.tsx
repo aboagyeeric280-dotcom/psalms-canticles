@@ -37,7 +37,7 @@ export default function Header({
 
         <button className="hdr__search" onClick={onSearch}>
           <IconSearch />
-          <span>Search psalms and canticles</span>
+          <span>Search the whole book</span>
         </button>
 
         {rank && (
@@ -47,7 +47,7 @@ export default function Header({
           </span>
         )}
 
-        <button className="iconbtn hdr__find" onClick={onSearch} aria-label="Find a psalm"><IconSearch /></button>
+        <button className="iconbtn hdr__find" onClick={onSearch} aria-label="Search the whole book"><IconSearch /></button>
         <button className="iconbtn" onClick={onSettings} aria-label="Reading settings"><IconSettings /></button>
       </div>
       {progress !== undefined && (

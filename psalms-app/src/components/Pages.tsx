@@ -1,45 +1,36 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import OfficeReader from './OfficeReader';
-import canticles from '../data/canticles.json';
-import dominican from '../data/dominican.json';
-import feasts from '../data/feasts.json';
-import prayers from '../data/prayers.json';
+import type { FocusMark } from './Blocks';
 import readingsData from '../data/readings.json';
-import compline from '../data/compline.json';
 import indices from '../data/indices.json';
-import front from '../data/front.json';
+import {
+  CANTICLES, DOMINICAN_BLOCKS, FEASTS, FEAST_BLOCKS, FRONT, MIDDAY_BLOCKS, PRAYERS,
+  PRAYERS_BLOCKS,
+} from '../data/pageBlocks';
 import { ORDER_TABLE, SINGING_LEGEND } from '../data/ordinary';
 import { ROMAN, DAY_NAMES, DAY_KEYS } from '../utils/liturgicalCalendar';
-import type { Block, Group, ReadingsOffice } from '../types';
+import type { ReadingsOffice } from '../types';
 import type { Prefs } from '../utils/storage';
 
-const CANT = canticles as any;
-const DOM = dominican as { groups: Group[]; litany: { c: string; text: string }[] };
-const FEASTS = feasts as { common: Group[]; proper: Group[]; table: any[] };
-const PRAYERS = prayers as { weekly: { n: number; lines: string[] }[]; goodFriday: Block[] };
 const READINGS = readingsData as { weekly: ReadingsOffice[]; seasonal: ReadingsOffice[] };
 const IDX = indices as any;
-const COMPLINE_SUPP = (compline as any).supplementary as Block[];
-const FRONT = front as unknown as { blocks: Block[]; meta: Record<string, string> };
 
 export interface PageProps {
   season: string;
   prefs: Prefs;
   onGo: (r: string) => void;
   onProgress: (p: number) => void;
+  /** A line arrived at by searching. */
+  focus?: FocusMark | null;
 }
 
-const flat = (groups: Group[]): Block[] =>
-  groups.flatMap(g => [
-    ...(g.title ? [{ k: 'head', text: g.title, level: 1 } as Block] : []),
-    ...g.blocks,
-  ]);
-
 /* ---------------------------------------------------------- gospel canticles */
-export function CanticlePage({ which, ...p }: PageProps & { which: 'zechariah' | 'mary' }) {
-  const settings = (which === 'zechariah' ? CANT.zechariah : CANT.mary) as
-    { num: number | null; label: string; blocks: Block[] }[];
-  const [pick, setPick] = useState(0);
+export function CanticlePage(
+  { which, setting = 0, ...p }: PageProps & { which: 'zechariah' | 'mary'; setting?: number },
+) {
+  const settings = CANTICLES[which];
+  // A search names the setting it found the words in, and the route carries it.
+  const [pick, setPick] = useState(() => Math.min(Math.max(0, setting), settings.length - 1));
   const chosen = settings[Math.min(pick, settings.length - 1)];
 
   const name = which === 'zechariah' ? 'Canticle of Zechariah' : 'Canticle of Mary';
@@ -80,7 +71,7 @@ export function InvitatoryPage(p: PageProps) {
       kicker="Before the first hour of the day"
       title="Invitatory"
       subtitle="Psalm 95, or 100, 67 or 24 — pages 9–11"
-      blocks={CANT.invitatory}
+      blocks={CANTICLES.invitatory}
       idPrefix="inv"
     />
   );
@@ -93,56 +84,30 @@ export function TeDeumPage(p: PageProps) {
       kicker="The Church’s Hymn of Praise"
       title="Te Deum"
       subtitle="Pages 12–13 — printed as engraved music"
-      blocks={CANT.teDeum}
+      blocks={CANTICLES.teDeum}
       idPrefix="tedeum"
     />
   );
 }
 
 export function MiddayPage(p: PageProps) {
-  const blocks = useMemo<Block[]>(() => [
-    { k: 'head', text: 'Some Antiphons for Midday', level: 1 },
-    ...CANT.midday.antiphons,
-    { k: 'head', text: 'Hymns for Midday', level: 1 },
-    ...CANT.midday.hymns,
-  ], []);
   return (
     <OfficeReader {...p} kicker="Terce · Sext · None" title="Midday Prayer"
-      subtitle="Antiphons and hymns — pages 14–15" blocks={blocks} idPrefix="midday" />
+      subtitle="Antiphons and hymns — pages 14–15" blocks={MIDDAY_BLOCKS} idPrefix="midday" />
   );
 }
 
 /* -------------------------------------------------------------- supplements */
 export function DominicanPage(p: PageProps) {
-  const blocks = useMemo<Block[]>(() => {
-    // The Salve Regina, O Lumen and the suffrage for the dead are printed at
-    // the end of Compline itself (pp. 413–414); the rest follows from p. 414.
-    const invocations = DOM.litany.filter(l => l.c === '');
-    const litany: Block[] = [
-      { k: 'head', text: 'Litany of the Blessed Virgin', level: 1 },
-      { k: 'rubric', text: 'Litany of Loreto — the invocations are answered “pray for us”.' },
-      { k: 'vr', items: DOM.litany.filter(l => l.c !== '').map(l => ({ c: l.c, text: l.text })) },
-      ...(invocations.length
-        ? [{ k: 'text', paras: [invocations.map(l => ({ t: l.text, i: 0 as const }))] } as Block]
-        : []),
-    ];
-    return [
-      ...COMPLINE_SUPP,
-      ...flat(DOM.groups),
-      ...litany,
-    ];
-  }, []);
-
   return (
     <OfficeReader {...p} kicker="Dominican use" title="Compline Supplements"
       subtitle="Salve Regina · O Lumen · hymns · suffrages · litany — pages 414–427"
-      blocks={blocks} idPrefix="dom" />
+      blocks={DOMINICAN_BLOCKS} idPrefix="dom" />
   );
 }
 
 /* ------------------------------------------------------------------ feasts */
 export function FeastsPage({ which, ...p }: PageProps & { which: 'common' | 'proper' }) {
-  const groups = which === 'common' ? FEASTS.common : FEASTS.proper;
   return (
     <OfficeReader
       {...p}
@@ -151,7 +116,7 @@ export function FeastsPage({ which, ...p }: PageProps & { which: 'common' | 'pro
       subtitle={which === 'common'
         ? 'Dedication of a Church, Mary, Apostles, Martyrs, Holy Men, Holy Women — pages 286–297'
         : 'Christmas to Christ the King, in order of occurrence — pages 298–306'}
-      blocks={flat(groups)}
+      blocks={FEAST_BLOCKS[which]}
       idPrefix={`feast-${which}`}
       intro={
         <p className="rubric blk">
@@ -218,32 +183,23 @@ export function ReadingsIndexPage({ onGo }: PageProps) {
 
 /* ---------------------------------------------------------- weekly prayers */
 export function PrayersPage(p: PageProps) {
-  const blocks = useMemo<Block[]>(() => [
-    { k: 'head', text: 'Weekly Prayers', level: 1 },
-    ...PRAYERS.weekly.map<Block>(w => ({
-      k: 'text',
-      paras: [[{ t: `${w.n}.  ${w.lines[0] ?? ''}`, i: 0 }, ...w.lines.slice(1).map(l => ({ t: l, i: 1 as const }))]],
-    })),
-    { k: 'head', text: 'Morning Intercessions — Good Friday and Holy Saturday', level: 1 },
-    ...PRAYERS.goodFriday,
-  ], []);
   return (
     <OfficeReader {...p} kicker="Concluding prayers" title="Weekly Prayers"
       subtitle={`${PRAYERS.weekly.length} collects for the weeks of the year — pages 428–431`}
-      blocks={blocks} idPrefix="prayers" />
+      blocks={PRAYERS_BLOCKS} idPrefix="prayers" />
   );
 }
 
 /* ----------------------------------------------------------------- tables */
 export function TablesPage({ onGo }: PageProps) {
-  const sections = useMemo(() => {
+  const sections = (() => {
     const bySection = new Map<string, any[]>();
-    for (const row of FEASTS.table) {
+    for (const row of FEASTS.table as any[]) {
       if (!bySection.has(row.section)) bySection.set(row.section, []);
       bySection.get(row.section)!.push(row);
     }
     return [...bySection.entries()];
-  }, []);
+  })();
 
   return (
     <div className="shell" style={{ paddingBottom: '4rem' }}>

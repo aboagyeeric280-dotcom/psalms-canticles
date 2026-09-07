@@ -30,6 +30,16 @@ containing 440 printed pages transcribed from the official source.
 - **Office Routing (`src/utils/officeForDay.ts`):** Festal days route to Sunday
   Week I psalms + Commons/Propers; ferials and memorials use the 4-week psalter.
   Optional memorials default to ferial unless elected by the user.
+- **Full-Text Search (`src/utils/search.ts`):** The whole book — every line of
+  every psalm, canticle, antiphon, hymn, collect and rubric — indexed at run
+  time from `src/data/pageBlocks.ts`, the single source of truth for the block
+  lists the reader components render. A result opens the text at the exact
+  line, marks the words, and never asks the reader to scroll for it. Exact
+  phrase first, then all-words, near spellings and best-coverage fallbacks;
+  psalm and verse references (`23`, `Psalm 119:105`) are looked up rather than
+  searched. **Anchors are block indices — any component that assembles its own
+  blocks instead of importing them from `pageBlocks.ts` will silently drift
+  from the index.**
 - **Gospel Canticles:** All 18 settings (9 Songs of Zechariah + 9 Songs of Mary)
   matching exact stanza shapes, verse divisions, and chant tone markings.
 - **Three Switchable Visual Styles:**
@@ -57,8 +67,8 @@ containing 440 printed pages transcribed from the official source.
   use it, note that PowerShell `Compress-Archive` must never be used — it writes
   Windows backslash separators that break Linux hosts.)
 - **Preserve `base: './'` in `vite.config.ts`** so asset paths stay relative.
-- **Test suites:** `npm run check:all` runs all 5 suites — calendar, office routing,
-  canticle fidelity, service worker caching, and index resolution.
+- **Test suites:** `npm run check:all` runs all 6 suites — calendar, office routing,
+  canticle fidelity, service worker caching, full-text search, and index resolution.
 
 ## 5. Key Paths & Commands
 
@@ -72,7 +82,7 @@ containing 440 printed pages transcribed from the official source.
   - `npm run build` — `fonts` + `tsc -b` + `vite build` + `tools/sw-build.mjs`
   - `npm run package` — build, then `tools/package.mjs` (the ONLY sanctioned way to
     produce a deploy archive)
-  - `npm run check:all` — all 5 test suites
+  - `npm run check:all` — all 6 test suites
   - `npm run fonts` — regenerate self-hosted font subsets (`tools/fonts.mjs`)
   - Data-pipeline scripts (`data`, `plates`, `icons`, `canticles`, `lines`) invoke
     tools one directory up (`../tools/…`).

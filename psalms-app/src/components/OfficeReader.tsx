@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import Blocks, { outline } from './Blocks';
+import Blocks, { outline, type FocusMark } from './Blocks';
 import Sheet from './Sheet';
 import { IconBack, IconBook, IconForward, IconHome, IconList, IconMoon, IconSun } from './icons';
 import type { Block } from '../types';
 import type { Prefs } from '../utils/storage';
-import { scrollToElement } from '../utils/scroll';
+import { scrollToElement, scrollToNode } from '../utils/scroll';
 import { readMark, saveMark } from '../utils/storage';
 
 /** The prayer-book styles, by the names the settings sheet gives them. */
@@ -42,12 +42,14 @@ export interface ReaderProps {
   /** Route to remember the reading position under. Omit for texts that are
       looked up rather than prayed through. */
   resumeKey?: string;
+  /** A line found by searching, to open on rather than start at the top. */
+  focus?: FocusMark | null;
 }
 
 /** The distraction-free reading surface, shared by every text in the book. */
 export default function OfficeReader({
   kicker, title, subtitle, blocks, season, prefs, onGo, onProgress, intro, outro,
-  idPrefix = 'b', prev, next, onSize, onCycleTheme, onCycleAesthetic, latin, resumeKey,
+  idPrefix = 'b', prev, next, onSize, onCycleTheme, onCycleAesthetic, latin, resumeKey, focus,
 }: ReaderProps) {
   const [toc, setToc] = useState(false);
   const [current, setCurrent] = useState<string | null>(null);
@@ -89,7 +91,8 @@ export default function OfficeReader({
      returns to the section rather than the pixel, because the text may have
      been resized since. */
   useEffect(() => {
-    if (!resumeKey) return;
+    // Arriving on a searched-for line beats returning to where prayer stopped.
+    if (!resumeKey || focus) return;
     const mark = readMark(resumeKey);
     if (!mark || mark.y < 40) return;
     const t = window.setTimeout(() => {
@@ -97,7 +100,22 @@ export default function OfficeReader({
       else window.scrollTo(0, mark.y);
     }, 0);
     return () => window.clearTimeout(t);
-  }, [resumeKey]);
+  }, [resumeKey, focus]);
+
+  /* Arrived by searching: put the line itself under the reader's eye, not the
+     top of the hour that prints it. The marked line is preferred to the block
+     because a psalm can run for a screenful; the block is the fallback for a
+     heading, and for anything the text may have shifted under. */
+  useEffect(() => {
+    if (!focus) return;
+    const t = window.setTimeout(() => {
+      const block = document.getElementById(focus.anchor);
+      const line = block?.querySelector('[data-hit="1"]');
+      if (line) scrollToNode(line, 'in-view');
+      else if (block) scrollToNode(block);
+    }, 50);
+    return () => window.clearTimeout(t);
+  }, [focus]);
 
   // A− / A+ act on the text in place; this is the only feedback they need.
   useEffect(() => {
@@ -166,7 +184,7 @@ export default function OfficeReader({
           </header>
 
           {intro}
-          <Blocks blocks={blocks} season={season} idPrefix={idPrefix} />
+          <Blocks blocks={blocks} season={season} idPrefix={idPrefix} focus={focus} />
           {outro}
         </article>
       </div>
