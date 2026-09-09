@@ -508,6 +508,66 @@ a { color: inherit; }
   padding: .55em .8em;
   margin: 1.2em 0;
 }
+
+/* ------------------------------ the rest of the Hour, out at Universalis */
+/* A footer, and set as one. The liturgical text ends at the rule above it:
+   nothing here is part of the Office, so it takes the furniture sans, the
+   caption sizes and the muted ink rather than the reading face. Every colour
+   is a token, so the three themes and the three styles all carry it without
+   a rule of their own.
+
+   Sized in em, like .xref and .rubric and everything else that sits inside
+   the reader: A+ is set by someone who needs the larger text, and he needs
+   it here as much as in the psalm above. */
+.uxl {
+  margin: 3em 0 .5em;
+  padding-top: 1.5em;
+  border-top: 1px solid var(--rule);
+  font-family: var(--font-sans);
+  text-align: center;
+}
+.uxl__head {
+  font-family: var(--font-sans);
+  font-size: .7em; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 .9em;
+}
+.uxl__lead {
+  font-size: .8em; line-height: 1.55;
+  color: var(--ink-soft);
+  max-width: 30em;
+  margin: 0 auto 1.2em;
+}
+/* Universalis ask to be credited by name and address, and it is theirs: it
+   stays on one line and takes the full ink so it reads as the name it is. */
+.uxl__host { color: var(--ink); white-space: nowrap; }
+/* inline-block, not flex: the label wraps to two lines on a phone and the
+   arrow has to stay at the end of the words, not float off beside them. */
+.uxl__link {
+  display: inline-block;
+  max-width: 100%;
+  font-size: .82em; font-weight: 600; line-height: 1.45;
+  color: var(--ink);
+  text-decoration: none;
+  background: var(--bg-raised);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm);
+  padding: .65em 1em;
+  transition: border-color .14s, color .14s, background .14s;
+}
+.uxl__link:hover { border-color: var(--accent); color: var(--accent); }
+.uxl__link:active { background: var(--bg-sunken); }
+.uxl__out { margin-left: .35em; opacity: .65; }
+.uxl__note {
+  font-size: .74em; line-height: 1.5;
+  color: var(--ink-faint);
+  max-width: 30em;
+  margin: 1em auto 0;
+}
+/* The one line here spoken in the book's own voice, so it keeps the rubric's
+   crimson italic; only its spacing belongs to the footer. */
+.uxl__rubric { margin: 1.4em auto 0; max-width: 30em; }
+
 .vr { margin: 1.3em 0; }
 .vr__row { display: flex; gap: .55em; margin: .3em 0; }
 .vr__c {
@@ -1084,6 +1144,16 @@ a { color: inherit; }
 }
 :root[data-aesthetic='vellum'] .reader__title { font-variant: small-caps; letter-spacing: .04em; }
 :root[data-aesthetic='vellum'] .reader__kicker { color: var(--rubric); }
+/* The footer takes the style's own furniture: a gold hairline to close the
+   page, and the heading set as a small-caps rubric rather than a label. */
+:root[data-aesthetic='vellum'] .uxl { border-top-color: var(--accent-line); }
+:root[data-aesthetic='vellum'] .uxl__head {
+  font-family: var(--font-display);
+  font-size: .8rem; font-weight: 600;
+  font-variant: small-caps; text-transform: none; letter-spacing: .05em;
+  color: var(--rubric);
+}
+:root[data-aesthetic='vellum'] .uxl__link { border-color: var(--accent-line); }
 
 :root[data-aesthetic='vellum'] .h1 { font-variant: small-caps; letter-spacing: .05em; }
 :root[data-aesthetic='vellum'] .h2 {
@@ -1172,6 +1242,15 @@ a { color: inherit; }
 :root[data-aesthetic='still-point'] .h1::after { display: none; }
 :root[data-aesthetic='still-point'] .h2 { font-family: var(--font-meta); font-weight: 400; }
 :root[data-aesthetic='still-point'] .reader__kicker { font-family: var(--font-meta); font-weight: 400; }
+/* Quieter still: the heading drops its weight and its capitals, as every
+   other label in this style does. */
+:root[data-aesthetic='still-point'] .uxl__head {
+  font-family: var(--font-meta);
+  font-weight: 400; text-transform: none; letter-spacing: .01em;
+  font-size: .78rem;
+  color: var(--ink-soft);
+}
+:root[data-aesthetic='still-point'] .uxl__link { font-weight: 500; }
 :root[data-aesthetic='still-point'] .reader__title { font-weight: 400; letter-spacing: -.01em; }
 :root[data-aesthetic='still-point'] .psalm__head { border-bottom-color: var(--rule); }
 :root[data-aesthetic='still-point'] .psalm__section { background: var(--bg-sunken); color: var(--ink-soft); }
@@ -1387,6 +1466,15 @@ a { color: inherit; }
 :root[data-aesthetic='green-modern'] .reader__title { font-weight: 700; letter-spacing: 0; }
 :root[data-aesthetic='green-modern'] .reader__kicker { font-family: var(--font-meta); color: var(--green-600); }
 :root[data-aesthetic='green-modern'][data-theme='dark'] .reader__kicker { color: var(--accent); }
+/* The one style that brings its own palette brings it here too: the heading
+   in the deep green it uses for every piece of meta, and the link on the
+   card ground with a green edge instead of a tan one. */
+:root[data-aesthetic='green-modern'] .uxl__head {
+  font-family: var(--font-meta);
+  font-size: var(--meta-size); letter-spacing: var(--meta-track);
+  color: var(--accent);
+}
+:root[data-aesthetic='green-modern'] .uxl__link { border-color: var(--accent-line); }
 :root[data-aesthetic='green-modern'] .h1 { font-weight: 700; letter-spacing: .01em; }
 :root[data-aesthetic='green-modern'] .h1::after { background: var(--green-600); }
 :root[data-aesthetic='green-modern'] .h2 { font-family: var(--font-meta); font-weight: 700; }
@@ -1505,8 +1593,12 @@ a { color: inherit; }
 /* ------------------------------------------------------------- the guard */
 /* Whatever the finish, the surface a psalm is read off stays flat. Nothing
    above may reach inside the reader, and this says so out loud. */
+/* The Universalis footer is chrome by nature but sits on the reading page,
+   so it is held flat with everything else rather than lit as a card. */
 :root[data-gloss='glossy'] .reader,
 :root[data-gloss='glossy'] .reader .blk,
+:root[data-gloss='glossy'] .uxl,
+:root[data-gloss='glossy'] .uxl__link,
 :root[data-gloss='glossy'] .ant,
 :root[data-gloss='glossy'] .strophe,
 :root[data-gloss='glossy'] .line,

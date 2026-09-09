@@ -67,8 +67,9 @@ containing 440 printed pages transcribed from the official source.
   use it, note that PowerShell `Compress-Archive` must never be used — it writes
   Windows backslash separators that break Linux hosts.)
 - **Preserve `base: './'` in `vite.config.ts`** so asset paths stay relative.
-- **Test suites:** `npm run check:all` runs all 6 suites — calendar, office routing,
-  canticle fidelity, service worker caching, full-text search, and index resolution.
+- **Test suites:** `npm run check:all` runs all 7 suites — calendar, sanctoral,
+  office routing, service worker caching, full-text search, Universalis links,
+  and canticle fidelity.
 
 ## 5. Key Paths & Commands
 
@@ -82,7 +83,7 @@ containing 440 printed pages transcribed from the official source.
   - `npm run build` — `fonts` + `tsc -b` + `vite build` + `tools/sw-build.mjs`
   - `npm run package` — build, then `tools/package.mjs` (the ONLY sanctioned way to
     produce a deploy archive)
-  - `npm run check:all` — all 6 test suites
+  - `npm run check:all` — all 7 test suites
   - `npm run fonts` — regenerate self-hosted font subsets (`tools/fonts.mjs`)
   - Data-pipeline scripts (`data`, `plates`, `icons`, `canticles`, `lines`) invoke
     tools one directory up (`../tools/…`).

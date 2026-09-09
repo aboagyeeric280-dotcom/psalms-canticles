@@ -23,6 +23,10 @@ export interface Prefs {
   litColour: boolean;
   aesthetic: Aesthetic;
   gloss: Gloss;
+  /* Offer the link out to the rest of the Hour at Universalis. The app never
+     fetches anything from them; turned off, it does not even link, and is
+     entirely self-contained. */
+  universalis: boolean;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -36,6 +40,7 @@ export const DEFAULT_PREFS: Prefs = {
   litColour: true,
   aesthetic: 'vellum',
   gloss: 'matte',
+  universalis: true,
 };
 
 const PREFS_KEY = 'dpc.prefs';

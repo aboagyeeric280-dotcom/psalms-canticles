@@ -30,11 +30,30 @@ pages. Every text is transcribed from the source PDF; nothing is paraphrased.
   the ESM bundle contains it, and its calendar bundles are stuck at a
   mismatched `3.0.0-alpha.0`. The calendar was written instead: 18.8 kB
   minified, 5.1 kB gzipped.
-- **PowerShell `Compress-Archive` must never be used to build the zip.** It
-  writes backslash path separators, which Windows tolerates and Linux hosts
-  do not — this caused a blank-white-screen Netlify deploy. `tools/package.mjs`
-  writes the zip itself and refuses to emit an entry containing a backslash.
+- **The app is deployed by GitHub Actions to GitHub Pages**, not by hand and
+  not to Netlify. `.github/workflows/deploy.yml` runs `npm ci && npm run build`
+  and publishes `psalms-app/dist/`; the live app is
+  https://aboagyeeric280-dotcom.github.io/psalms-canticles/. Nothing is
+  visible to anyone until it is committed and pushed. `dist/` is gitignored
+  and rebuilt in CI — never commit it.
+- **`npm run package` is only for an offline hand-off copy** and is no longer
+  part of deploying. If it is ever used: **PowerShell `Compress-Archive` must
+  never build the zip.** It writes backslash path separators, which Windows
+  tolerates and Linux hosts do not — that is what once produced a blank white
+  screen on the old Netlify host. `tools/package.mjs` writes the zip itself
+  and refuses to emit an entry containing a backslash.
 - **`base: './'`** in `vite.config.ts` is correct and verified. Do not change.
+- **The rest of the Hour is linked to, never bundled. Do not "helpfully" add
+  the texts.** Our book prints the psalmody and nothing else; the short
+  reading, the responsory, the intercessions and the concluding prayer are
+  not in it, and every English translation of them is under a copyright the
+  province does not hold. Universalis answer "can I copy bits of your website
+  into mine" with a flat no, and ask instead to be linked to and credited.
+  So each Hour carries a link built from the date and the hour, and the app
+  fetches, scrapes, caches, proxies, embeds and stores exactly nothing from
+  them. A `fetch()` to universalis.com anywhere in this repository is a bug,
+  not a feature; `npm run check:universalis` fails the build if one appears
+  in the mapping module.
 
 ---
 
@@ -71,12 +90,57 @@ calendar with circular day badges tinted by liturgical colour and ringed for
 feasts/solemnities; date picker for any past or future date; reader dock with
 Home, A−/A+, theme cycle, section jump, prev/next through the psalter.
 
+**Links out to the rest of the Hour.** At the foot of Morning, Midday and
+Evening Prayer — after the psalmody, where the missing parts fall — a quiet
+footer links to the same Hour on Universalis: the reading, responsory,
+intercessions and concluding prayer a friar would otherwise have to find
+elsewhere. `src/utils/universalis.ts` builds the URL and does nothing else;
+`src/components/UniversalisLink.tsx` renders it.
+
+- `https://universalis.com/africa.nigeria/<yyyymmdd>/<hour>.htm`. The slug is
+  Universalis's Nigeria calendar, the larger half of the province; they
+  publish no Ghana calendar, and the general `africa` one would lose the
+  Nigerian proper days. **The slug was chosen from their own live URLs, not
+  from their link builder — the session that built this could not reach
+  universalis.com through its egress proxy. Worth confirming once in a
+  browser.**
+- `morning → lauds`, `midday → sext` (the one it is actually prayed at, as
+  `utils/hours.ts` does for the Latin names), `evening → vespers`,
+  `evening-before → vespers of the day before`, because Universalis print
+  Sunday's Evening Prayer I on the Saturday. Compline is complete in our book
+  and has no link at all. `i-lauds` is supported and tested but not used: the
+  app carries the Invitatory itself at `#/invitatory`.
+- The date is the one the app is showing, and the link names it in full, so a
+  reader browsing Week III on a Tuesday can never be sent somewhere he did
+  not ask for. Two shifts cancel for Evening Prayer I — it is prayed on the
+  Saturday and published under the Saturday — and that is deliberate; see the
+  comment on `universalisUrlFor`.
+- The free website carries about a week ahead. Outside that the link still
+  shows, with a quiet note; hiding it silently is more confusing than saying
+  so. Offline, the link stays and a line says plainly that this one thing
+  needs a connection.
+- Credit to Universalis by name and address is on the face of it, as they ask.
+  A rubric under the link says the psalms on their site are their own
+  translation from the Latin, not the liturgical one, and that the psalms to
+  pray are the ones in our book above — a friar must not be left thinking the
+  two are interchangeable.
+- One setting, **Reading settings → The rest of the Hour**, turns the links
+  off; on by default, persisted through `storage.ts` like every other
+  preference. Turned off, the string `universalis.com` does not appear in the
+  DOM at all and the app is entirely self-contained.
+- **The offline guarantee is untouched.** No request at load, nothing added to
+  the precache, no blocking on connectivity. `public/sw.js` already returns
+  early on cross-origin requests (`url.origin !== self.location.origin`), so
+  the link is passed straight through to the browser; this was checked, not
+  assumed. The only connectivity the component reads is `navigator.onLine`,
+  which asks nothing of the network.
+
 ### Service worker / caching — verified end to end
 
 `public/sw.js`, stamped after each build by `tools/sw-build.mjs` with the file
 list and a SHA-256 content hash (cache name `dpc-<hash>`).
 
-- Precaches the **entire build**: 35 files, 4.81 MB, added one at a time so a
+- Precaches the **entire build**: 41 files, 4.96 MB, added one at a time so a
   single failure cannot abort installation.
 - Navigations: cache-first with background refresh; assets: cache-first with
   an `ignoreSearch` fallback. Cross-origin and non-GET are passed through.
@@ -93,7 +157,7 @@ worker against stub caches with the network off.
 192/512/maskable icons, 3 screenshots (narrow + wide). All hard criteria met;
 only HTTPS hosting is required.
 
-### Test suites — 120 assertions, all passing
+### Test suites — 157 assertions, all passing
 
 | Command | Asserts | Covers |
 |---|---|---|
@@ -101,10 +165,14 @@ only HTTPS hosting is required.
 | `npm run check:calendar` | 35 | Sanctoral, ranks, colours, precedence, Sunday cycle, First Vespers |
 | `npm run check:office` | 12 | Each kind of day routes to the right part of the book; every route is one the app serves |
 | `npm run check:sw` | 9 | Precache, versioned cleanup, offline navigation/assets/plates |
+| `npm run check:search` | 22 | Phrase, all-words, near-spelling and reference lookups; every anchor resolves |
+| `npm run check:universalis` | 30 | Hour mapping, the previous-day rule across month, leap-February and year boundaries, zero-padded dates, well-formed absolute URLs — and that the module makes no network call |
 | `node ../tools/check-canticles.js` | 23 | All 18 canticle settings byte-identical to the .docx, incl. stanza shapes |
 | `node ../tools/audit.js` | 15 | All 218 index references resolve; no empty psalms; OCR artifacts gone |
 
-`npm run check:all` runs the first five.
+`npm run check:all` runs the first six. No test in this repository may make a
+request to universalis.com; `check:universalis` builds URLs and never opens
+one.
 
 ---
 
@@ -120,12 +188,13 @@ psalms-app/
       Dashboard.tsx  LiturgicalHeader.tsx  DayPlanCard.tsx  DatePicker.tsx
       OfficeReader.tsx  Blocks.tsx  ComplineView.tsx  Pages.tsx
       Header.tsx  Sheet.tsx  SettingsDrawer.tsx  IndexModal.tsx
-      HourShapeCard.tsx  icons.tsx
+      HourShapeCard.tsx  UniversalisLink.tsx  icons.tsx
     utils/
       liturgicalCalendar.ts    temporal cycle: Easter, seasons, psalter week
       generalCalendar.ts       sanctoral + movable + precedence  → LiturgicalToday
       officeForDay.ts          LiturgicalToday → DayPlan (which hour, which source)
       choirFormatter.ts        choir sides, tone-mark fragments
+      universalis.ts           HourKey + date → a Universalis URL. No I/O.
       storage.ts  scroll.ts
     data/
       weeks/week1-4.json       84 offices          readings.json  compline.json
@@ -134,6 +203,8 @@ psalms-app/
       prayers.json  indices.json  front.json  plates.json  search.json
   public/    manifest.json  sw.js  _redirects  icons/  plates/  fonts/  screenshots/
   tools/     sw-build.mjs  package.mjs  fonts.mjs  check-*.mjs
+             (check-calendar, check-sanctoral, check-office, check-sw,
+              check-search, check-universalis)
 
 tools/                         the offline pipeline (run from psalms-app/)
   parse.js lib.js tables.js    PDF text → typed blocks
@@ -153,58 +224,60 @@ tools/                         the offline pipeline (run from psalms-app/)
 
 ## 4. Outstanding issues
 
-**A. `seasonTint` preference is dead — a live regression.** The styling pass
-replaced the palette and removed every `:root[data-season=…]` rule
-(`grep -c data-season src/index.css` → **0**), but `App.tsx:76` still sets
-`document.documentElement.dataset.season` and `SettingsDrawer.tsx:101` still
-offers a "Colour by season" chip that now changes nothing. Either give it a
-real effect (e.g. tint the reader's antiphon rule with the day's colour) or
-remove the toggle and the dataset write. **Highest-priority fix.**
+Three entries that stood here a week ago — the dead `seasonTint` toggle, the
+duplicated Dashboard chip rows, and the missing optional-memorial control —
+have all since been fixed and are gone from this list. `seasonTint` leaves no
+trace in `src/`; the Dashboard now carries the liturgical header and plan card
+without the older chip rows under them; `components/OptionalMemorials.tsx` is
+the keep-or-pass-over control.
 
-**B. Netlify deploy not reconfirmed.** The first deploy was blank (backslash
-paths, since fixed and verified by extracting the zip with POSIX rules and
-loading it in real Chromium). The user has not yet confirmed a successful
-redeploy. Not known to be broken — just unverified in production.
-
-**C. Dashboard has redundant sections.** The new liturgical header + plan card
-sit above the older "hours today / Day / Psalter week / Season" chip rows,
-which now partly duplicate them. Worth consolidating.
-
-**D. Book limitation, not a bug: no sanctoral propers.** The book contains no
+**A. Book limitation, not a bug: no sanctoral propers.** The book contains no
 proper antiphons or collects for memorials. On a memorial the app keeps the
 weekday psalter, points at the relevant common, and says so in the UI. Do not
 invent these texts.
 
-**E. Canticle indentation flattened.** The corrected .docx indents every line
+**B. The Universalis calendar slug is unconfirmed at source.** The links use
+`africa.nigeria`, taken from live Universalis URLs of that form. The session
+that built the feature could not open their link builder at
+`universalis.com/n-link.htm` — its egress proxy blocked the domain outright —
+so the slug has not been round-tripped through their own tool. Everything
+else about the links is tested. Open
+`https://universalis.com/africa.nigeria/20260909/lauds.htm` in a browser once
+and, if it is wrong, change the single constant `UNIVERSALIS_CALENDAR` in
+`src/utils/universalis.ts`; nothing else needs touching.
+
+**C. Canticle indentation flattened.** The corrected .docx indents every line
 uniformly, so all canticle lines are stored at `i: 0`; the book's alternating
 second-line indent is gone for those 18 settings. Faithful to the supplied
 document — restore only if the user asks.
 
-**F. `+2` artifact** at the end of a line in Zechariah 2 ("in the / house of /
+**D. `+2` artifact** at the end of a line in Zechariah 2 ("in the / house of /
 David his /servant, +2") — the printed book's page-continuation mark, carried
 into the .docx. Preserved verbatim as instructed; meaningless in the app.
 
-**G. Optional memorials** are displayed and labelled but there is no "keep or
-pass over" control.
-
-**H. Android APK / desktop build not attempted.** No JDK, Android SDK, Rust or
+**E. Android APK / desktop build not attempted.** No JDK, Android SDK, Rust or
 .NET on this machine. The PWA installs on both Windows (Edge) and Android
 (Chrome) with no build step, which is the recommended route.
 
-**We are not stuck.** The last completed task (UI restyle) finished green:
-build clean, all five check suites passing, zip packaged and delivered.
+**We are not stuck.** The last completed task (links out to the rest of the
+Hour) finished green: `tsc -b` clean, `npm run build` clean, all seven check
+suites passing at 157 assertions, and the footer rendered and inspected in all
+three prayer-book styles across Light, Sepia and Dark and both finishes.
 
 ---
 
 ## 5. Next steps, in order
 
-1. **Fix the dead `seasonTint` toggle** (issue A) — decide effect or removal.
-2. **Confirm the Netlify redeploy** renders, then install on Windows (Edge →
-   install icon) and Android (Chrome → ⋮ → Install app).
-3. **Tidy the Dashboard** (issue C) — fold the older chip rows into the new
-   plan card, or drop the ones the calendar now answers.
-4. Optional-memorial keep/pass control (issue G).
-5. Optionally restore two-choir indentation in the gospel canticles (issue E).
+1. **Confirm the Universalis calendar slug** (issue B) — one URL in a browser,
+   and either nothing to do or one constant to change.
+2. **Check the Pages deploy** renders after the push, then install on Windows
+   (Edge → install icon) and Android (Chrome → ⋮ → Install app).
+3. Optionally restore two-choir indentation in the gospel canticles (issue C).
+
+Not a next step, and not an oversight: **the reading, responsory,
+intercessions and concluding prayer stay out of this repository.** See the
+decision in §1. If a future task looks like "carry the whole Hour offline",
+the answer is that we may not, and the link is the answer we chose.
 
 ## Environment notes
 

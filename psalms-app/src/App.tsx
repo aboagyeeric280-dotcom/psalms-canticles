@@ -4,6 +4,7 @@ import Dashboard from './components/Dashboard';
 import OfficeReader from './components/OfficeReader';
 import ComplineView from './components/ComplineView';
 import HourShapeCard from './components/HourShapeCard';
+import UniversalisLink from './components/UniversalisLink';
 import IndexModal from './components/IndexModal';
 import SettingsDrawer from './components/SettingsDrawer';
 import {
@@ -151,7 +152,12 @@ export default function App() {
             <LiturgicalHeader day={today} compact />
             <HourShapeCard shape={shape} onGo={go} where="before" />
           </>}
-          outro={<HourShapeCard shape={shape} onGo={go} where="after" />}
+          outro={<>
+            <HourShapeCard shape={shape} onGo={go} where="after" />
+            {/* The parts of the Hour our book does not print. A link only —
+                nothing is fetched from Universalis, here or anywhere. */}
+            {prefs.universalis && <UniversalisLink hour={office.hour} prayedOn={viewed} />}
+          </>}
         />
       );
     }
