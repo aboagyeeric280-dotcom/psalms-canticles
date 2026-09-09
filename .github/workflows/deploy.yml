@@ -36,6 +36,16 @@ jobs:
       - name: Build the app
         run: npm run build
 
+      # After the build, and before anything is uploaded: check:sw runs the
+      # built service worker out of dist/ against stub caches, so it has
+      # nothing to test until the build has run. A red suite must stop the
+      # deploy rather than be read afterwards — the calendar and office-routing
+      # suites are what keep a wrong psalter route off the friars' phones, and
+      # check:universalis carries the guard that fails if anything in the app
+      # ever reaches out to a site we are only permitted to link to.
+      - name: Run the check suites
+        run: npm run check:all
+
       # Stops GitHub from running Jekyll over the build output.
       - name: Add .nojekyll
         run: touch dist/.nojekyll
