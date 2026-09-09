@@ -158,6 +158,16 @@ export default function SettingsDrawer({ prefs, update, onClose }: Props) {
         </button>
       </Field>
 
+      <Field
+        label="The rest of the Hour"
+        hint="Our book prints the psalmody. The reading, responsory, intercessions and concluding prayer are not in it, so each Hour offers a link to the same Hour on the Universalis website. Nothing is ever downloaded from them, and turning this off leaves the app entirely self-contained."
+      >
+        <button className="chip" aria-pressed={prefs.universalis}
+          onClick={() => update({ universalis: !prefs.universalis })}>
+          Link to Universalis at the foot of the Hour
+        </button>
+      </Field>
+
       <button className="btn btn--ghost" onClick={() => update(DEFAULT_PREFS)}>Reset to defaults</button>
     </Sheet>
   );
