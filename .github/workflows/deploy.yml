@@ -1,18 +1,19 @@
 name: Build and deploy to GitHub Pages
 
-# Every push to main rebuilds the app and publishes it.
+# Pull requests build and check only. Publishing is restricted to main.
 on:
   push:
+    branches: [main]
+  pull_request:
     branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  # Keep PR checks separate from the existing production concurrency group.
+  group: ${{ github.ref == 'refs/heads/main' && 'pages' || format('pages-checks-{0}', github.ref) }}
   cancel-in-progress: true
 
 jobs:
@@ -23,6 +24,8 @@ jobs:
         working-directory: psalms-app
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@v4
         with:
@@ -36,22 +39,38 @@ jobs:
       - name: Build the app
         run: npm run build
 
+      # After the build, and before anything is uploaded: check:sw runs the
+      # built service worker out of dist/ against stub caches, so it has
+      # nothing to test until the build has run. A red suite must stop the
+      # deploy rather than be read afterwards — the calendar and office-routing
+      # suites are what keep a wrong psalter route off the friars' phones, and
+      # check:universalis carries the guard that fails if anything in the app
+      # ever reaches out to a site we are only permitted to link to.
+      - name: Run the check suites
+        run: npm run check:all
+
       # Stops GitHub from running Jekyll over the build output.
       - name: Add .nojekyll
         run: touch dist/.nojekyll
 
-      - uses: actions/configure-pages@v5
-
       - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         with:
           path: psalms-app/dist
 
   deploy:
+    # Never deploy pull requests or manual runs from a feature branch.
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - uses: actions/configure-pages@v5
       - id: deployment
         uses: actions/deploy-pages@v4
