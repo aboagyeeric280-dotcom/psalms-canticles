@@ -85,6 +85,35 @@ check(unmatched.length === 0,
   `all ${totalRefs} index references resolve to a parsed psalm` +
   (unmatched.length ? ` — ${unmatched.slice(0, 8).join('; ')}` : ''));
 
+/* ------------------------------- the feast tables against that same index */
+// Each row of "Psalms for feast days" names its psalms and the pages they are
+// printed on, so the index settles whether the two columns are in step. This
+// catches a column that has slipped against its neighbour; a row whose figures
+// have slipped against their label reads as consistent here, which is why the
+// table is built from the PDF's geometry rather than from the text dump.
+const indexByLabel = new Map();
+for (const e of d.indexPsalms.psalms) if (!indexByLabel.has(e.label)) indexByLabel.set(e.label, e.pages);
+
+const mispaired = [];
+let pairings = 0;
+for (const row of d.indexFeasts) {
+  if (row.head || row.cells.length < 3) continue;
+  const [feast, psalms, printed] = row.cells;
+  const pages = printed.match(/\d+/g) || [];
+  if (!pages.length) continue;
+  // "8,19A & B" and "104, I, II, III" — take the tokens the index can name.
+  for (const token of psalms.split(/[^0-9A-C]+/)) {
+    const listed = indexByLabel.get(token);
+    if (!listed) continue;                      // a numeral, or a psalm the index omits
+    pairings++;
+    if (!listed.some(page => pages.includes(page)))
+      mispaired.push(`${feast}: psalm ${token} is on p.${listed.join('/')}, not ${pages.join(',')}`);
+  }
+}
+check(mispaired.length === 0,
+  `all ${pairings} feast-table psalms match their printed page` +
+  (mispaired.length ? ` — ${mispaired.slice(0, 6).join('; ')}` : ''));
+
 /* ------------------------------------------------- text hygiene after OCR */
 const text = JSON.stringify(d);
 for (const [name, re] of [
