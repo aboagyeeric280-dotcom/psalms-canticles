@@ -4,7 +4,7 @@
   "publisher": "Dominican Publications, Box 44, Yaba, Lagos",
   "province": "Province of St Joseph the Worker — Nigeria & Ghana",
   "credits": "Psalms and New Testament texts from Today’s English Version (Good News), by permission of the American Bible Society. Old Testament canticles translated by Fr Joseph Kenny, O.P.",
-  "generated": "2026-08-30",
+  "generated": "2026-09-14",
   "pages": 442
  },
  "front": [
@@ -56296,13 +56296,15 @@
  "indexFeasts": [
   {
    "section": "MORNING PSALMS FOR ALL FEASTS:",
-   "head": true,
-   "cells": []
+   "cells": [
+    "as on Sunday 1, p.37"
+   ]
   },
   {
    "section": "MIDDAY PSALMS",
    "head": true,
    "cells": [
+    "Feasts",
     "Psalms",
     "Pages"
    ]
@@ -56310,7 +56312,7 @@
   {
    "section": "MIDDAY PSALMS",
    "cells": [
-    "Feasts",
+    "CHRISTMAS",
     "19B, 47, 48",
     "48, 64, 72"
    ]
@@ -56318,7 +56320,7 @@
   {
    "section": "MIDDAY PSALMS",
    "cells": [
-    "CHRISTMAS",
+    "EPIPHANY",
     "47, 86, 98",
     "64, 190, 193"
    ]
@@ -56326,7 +56328,7 @@
   {
    "section": "MIDDAY PSALMS",
    "cells": [
-    "EPIPHANY",
+    "GOOD FRIDAY",
     "40, 54, 88",
     "111, 123, 248"
    ]
@@ -56334,7 +56336,7 @@
   {
    "section": "MIDDAY PSALMS",
    "cells": [
-    "GOOD FRIDAY",
+    "HOLY SATURDAY",
     "27 ,30, 76",
     "67, 76, 103"
    ]
@@ -56342,7 +56344,7 @@
   {
    "section": "MIDDAY PSALMS",
    "cells": [
-    "HOLY SATURDAY",
+    "EASTER MONDAY",
     "8,19A & B",
     "159, 110, 48"
    ]
@@ -56350,7 +56352,7 @@
   {
    "section": "MIDDAY PSALMS",
    "cells": [
-    "EASTER MONDAY",
+    "EASTER TUESDAY",
     "119A,16,23",
     "58, 95, 102"
    ]
@@ -56358,14 +56360,15 @@
   {
    "section": "MIDDAY PSALMS",
    "cells": [
-    "EASTER TUESDAY",
-    "119B,28,116–65, 86, 163"
+    "EASTER WEDNESDAY",
+    "119B,28,116B",
+    "65, 86, 163"
    ]
   },
   {
    "section": "MIDDAY PSALMS",
    "cells": [
-    "EASTER WEDNESDAY",
+    "EASTER THURSDAY",
     "119C,30,I, II",
     "74, 76"
    ]
@@ -56373,7 +56376,7 @@
   {
    "section": "MIDDAY PSALMS",
    "cells": [
-    "EASTER THURSDAY",
+    "EASTER FRIDAY",
     "119D,76,I,II",
     "84, 103"
    ]
@@ -56381,7 +56384,7 @@
   {
    "section": "MIDDAY PSALMS",
    "cells": [
-    "EASTER FRIDAY",
+    "EASTER SATURDAY",
     "119E,96,I,II",
     "92, 176"
    ]
@@ -56389,7 +56392,7 @@
   {
    "section": "MIDDAY PSALMS",
    "cells": [
-    "EASTER SATURDAY",
+    "2nd SUNDAY OF EASTER",
     "as Sunday I",
     "40"
    ]
@@ -56397,7 +56400,7 @@
   {
    "section": "MIDDAY PSALMS",
    "cells": [
-    "2nd SUNDAY OF EASTER",
+    "ASCENSION",
     "8,19A&B,",
     "159, 110, 48"
    ]
@@ -56405,21 +56408,15 @@
   {
    "section": "MIDDAY PSALMS",
    "cells": [
-    "ASCENSION",
+    "PENTECOST",
     "as Sunday I",
     "40"
    ]
   },
   {
-   "section": "MIDDAY PSALMS",
-   "cells": [
-    "PENTECOST"
-   ]
-  },
-  {
    "section": "ALL OTHER SOLEMN FEASTS:",
-   "head": true,
    "cells": [
+    "On weekdays",
     "120,121,122",
     "239, 155, 222"
    ]
@@ -56427,7 +56424,7 @@
   {
    "section": "ALL OTHER SOLEMN FEASTS:",
    "cells": [
-    "On weekdays",
+    "Or",
     "123,124,125",
     "180, 181, 188"
    ]
@@ -56443,21 +56440,10 @@
   {
    "section": "ALL OTHER SOLEMN FEASTS:",
    "cells": [
-    "Or",
+    "On Sundays",
     "as Sunday I",
     "40"
    ]
-  },
-  {
-   "section": "ALL OTHER SOLEMN FEASTS:",
-   "cells": [
-    "On Sundays"
-   ]
-  },
-  {
-   "section": "EVENING PSALMS FOR ALL FEASTS:",
-   "head": true,
-   "cells": []
   },
   {
    "section": "EVENING PSALMS FOR ALL FEASTS:",
@@ -56469,6 +56455,7 @@
    "section": "OFFICE OF READINGS",
    "head": true,
    "cells": [
+    "Feasts",
     "Psalms",
     "Pages"
    ]
@@ -56476,7 +56463,7 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "Feasts",
+    "DEDICATION OF A CHURCH",
     "24, 84, 87",
     "54,174,199"
    ]
@@ -56484,7 +56471,7 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "DEDICATION OF A CHURCH",
+    "MARY",
     "24, 45, 87",
     "54,114,199"
    ]
@@ -56492,7 +56479,7 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "MARY",
+    "APOSTLES",
     "19A, 64, 97",
     "110,161,129"
    ]
@@ -56500,7 +56487,7 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "APOSTLES",
+    "MARTYRS: SEVERAL",
     "2, 33, I, II",
     "307,56"
    ]
@@ -56508,7 +56495,7 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "MARTYRS: SEVERAL",
+    "MARTYRS: ONE",
     "2, 11, 17",
     "307,51,66"
    ]
@@ -56516,7 +56503,7 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "MARTYRS: ONE",
+    "HOLY MEN",
     "21, 92, I, II",
     "61,156"
    ]
@@ -56524,7 +56511,7 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "HOLY MEN",
+    "HOLY WOMEN",
     "19A, 45, I, II",
     "110,114"
    ]
@@ -56532,7 +56519,7 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "HOLY WOMEN",
+    "CHRISTMAS",
     "2, 19A, 45",
     "307,110,114"
    ]
@@ -56540,7 +56527,7 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "CHRISTMAS",
+    "HOLY FAMILY (SUNDAY)",
     "24, 46, 87",
     "54,88,199"
    ]
@@ -56548,7 +56535,7 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "HOLY FAMILY (SUNDAY)",
+    "ST JOHN DEC. 27",
     "19A, 64, 99",
     "110,161,201"
    ]
@@ -56556,7 +56543,7 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "ST JOHN DEC. 27",
+    "HOLY INNOCENT DEC. 28",
     "As Sunday I",
     "307"
    ]
@@ -56564,7 +56551,7 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "HOLY INNOCENT DEC. 28",
+    "DEC. 29",
     "46, 72, I, II",
     "88,144"
    ]
@@ -56572,7 +56559,7 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "DEC. 29",
+    "DEC. 30",
     "85, 89, I, II",
     "183,351,354"
    ]
@@ -56580,7 +56567,7 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "DEC. 30",
+    "DEC. 31",
     "96, 97, 98",
     "176,129,193"
    ]
@@ -56588,7 +56575,7 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "DEC. 31",
+    "MARY MOTHER OF GOD JAN 1",
     "24, 87, 99",
     "54,199,201"
    ]
@@ -56596,7 +56583,7 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "MARY MOTHER OF GOD JAN 1",
+    "EPIPHANY",
     "72, 96, 97",
     "144,176,129"
    ]
@@ -56604,17 +56591,9 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "EPIPHANY",
+    "BAPTISM OF THE LORD",
     "29, 66, I, II",
     "47,365"
-   ]
-  },
-  {
-   "section": "OFFICE OF READINGS",
-   "cells": [
-    "BAPTISM OF THE LORD",
-    "2, 19A, 45",
-    "307,110,114"
    ]
   },
   {
@@ -56629,6 +56608,14 @@
    "section": "OFFICE OF READINGS",
    "cells": [
     "ANNUNCIATION MARCH 25",
+    "2, 19A, 45",
+    "307,110,114"
+   ]
+  },
+  {
+   "section": "OFFICE OF READINGS",
+   "cells": [
+    "ASH WEDNESDAY",
     "Wed IV/Fri III",
     "372 or 357"
    ]
@@ -56636,7 +56623,7 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "ASH WEDNESDAY",
+    "GOOD FRIDAY",
     "2, 22, 38",
     "307,212,338"
    ]
@@ -56644,7 +56631,7 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "GOOD FRIDAY",
+    "HOLY SATURDAY",
     "4, 16, 24",
     "400,95,54"
    ]
@@ -56652,7 +56639,7 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "HOLY SATURDAY",
+    "EASTER MONDAY",
     "As Sunday I",
     "307"
    ]
@@ -56660,7 +56647,7 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "EASTER MONDAY",
+    "EASTER TUESDAY",
     "As Sunday IV",
     "363"
    ]
@@ -56668,7 +56655,7 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "EASTER TUESDAY",
+    "EASTER WEDNESDAY",
     "104, I, II, III",
     "324"
    ]
@@ -56676,7 +56663,7 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "EASTER WEDNESDAY",
+    "EASTER THURSDAY",
     "118, I, II, III",
     "40"
    ]
@@ -56684,7 +56671,7 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "EASTER THURSDAY",
+    "EASTER FRIDAY",
     "136, I, II, III",
     "340"
    ]
@@ -56692,7 +56679,7 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "EASTER FRIDAY",
+    "EASTER SATURDAY",
     "145, I, II, III",
     "343"
    ]
@@ -56700,7 +56687,7 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "EASTER SATURDAY",
+    "2ND SUNDAY OF EASTER",
     "As Sunday I",
     "307"
    ]
@@ -56708,7 +56695,7 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "2ND SUNDAY OF EASTER",
+    "ASCENSION",
     "68, I, II, III",
     "347"
    ]
@@ -56716,7 +56703,7 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "ASCENSION",
+    "PENTECOST",
     "104, I, II, III",
     "324"
    ]
@@ -56724,7 +56711,7 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "PENTECOST",
+    "TRINITY",
     "8, 33, I, II",
     "159,56"
    ]
@@ -56732,7 +56719,7 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "TRINITY",
+    "BODY AND BLOOD OF CHRIST",
     "23, 42, 81",
     "102,107,139"
    ]
@@ -56740,20 +56727,8 @@
   {
    "section": "OFFICE OF READINGS",
    "cells": [
-    "BODY AND BLOOD OF CHRIST"
-   ]
-  },
-  {
-   "section": "OFFICE OF READINGS",
-   "cells": [
-    "84, 61, 98"
-   ]
-  },
-  {
-   "section": "OFFICE OF READINGS",
-   "cells": [
     "SACRED HEART",
-    "2, 8, 96",
+    "36, 61, 98",
     "62,160,193"
    ]
   },
@@ -56761,7 +56736,7 @@
    "section": "OFFICE OF READINGS",
    "cells": [
     "TRANSFIGURATION AUG. 6",
-    "97, 103, I, II",
+    "84, 61, 98",
     "174,160,193"
    ]
   },
@@ -56769,7 +56744,7 @@
    "section": "OFFICE OF READINGS",
    "cells": [
     "EXALTATION OF HOLY CROSS",
-    "8, 15, 16",
+    "2, 8, 96",
     "307,159,176"
    ]
   },
@@ -56777,7 +56752,7 @@
    "section": "OFFICE OF READINGS",
    "cells": [
     "MICHAEL, GABRIEL &RAPHAEL",
-    "40, I, II, 42",
+    "97, 103, I, II",
     "129, 372"
    ]
   },
@@ -56785,7 +56760,7 @@
    "section": "OFFICE OF READINGS",
    "cells": [
     "ALL SAINTS NOV. 1",
-    "2, 72, I, II",
+    "8, 15, 16",
     "159,52,95"
    ]
   },
@@ -56793,6 +56768,7 @@
    "section": "OFFICE OF READINGS",
    "cells": [
     "ALL SOULS NOV. 2",
+    "40, I, II, 42",
     "111,107"
    ]
   },
@@ -56800,6 +56776,7 @@
    "section": "OFFICE OF READINGS",
    "cells": [
     "CHRIST THE KING",
+    "2, 72, I, II",
     "307,144"
    ]
   }
