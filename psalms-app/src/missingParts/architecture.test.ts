@@ -95,6 +95,47 @@ describe('D10: no placeholder liturgical wording ships in the reader', () => {
   });
 });
 
+describe('test 12: the feature stays headless', () => {
+  /* The calendar adapter and the data core must be usable and testable
+     without a renderer. Exactly one module binds the store to React, and it
+     does nothing else; everything else is plain TypeScript. */
+  const REACT_BINDING = './state/useAppState.ts';
+
+  it('lets only the documented binding import React', () => {
+    const importers = SHIPPED
+      .filter(([, source]) => /from\s+'react(-dom)?(\/[^']*)?'/.test(source))
+      .map(([path]) => path);
+    expect(importers).toEqual([REACT_BINDING]);
+  });
+
+  it('keeps that binding to the one thing it is for', () => {
+    const source = MISSING_PARTS[REACT_BINDING];
+    expect(source).toContain('useSyncExternalStore');
+    expect(source.split('\n').filter((l) => l.startsWith('export '))).toHaveLength(1);
+  });
+
+  it('imports no router, and no component from the reader', () => {
+    for (const [path, source] of SHIPPED) {
+      const imports = [...source.matchAll(/from\s+'([^']+)'/g)].map((m) => m[1]);
+      for (const specifier of imports) {
+        expect(specifier, `${path} imports a router`).not.toMatch(/router|history|wouter/i);
+        expect(specifier, `${path} imports a component`).not.toMatch(/\/components\//);
+      }
+    }
+  });
+
+  it('has no JSX anywhere in the feature', () => {
+    expect(Object.keys(MISSING_PARTS).filter((p) => p.endsWith('.tsx'))).toEqual([]);
+  });
+
+  it('keeps the calendar adapter itself free of React', () => {
+    for (const [path, source] of SHIPPED) {
+      if (!path.startsWith('./adapter/')) continue;
+      expect(source, `${path} imports React`).not.toMatch(/from\s+'react/);
+    }
+  });
+});
+
 describe('the production build and calendar are left alone', () => {
   it('does not modify the production Vite configuration', () => {
     const vite = VITE_CONFIG['../../vite.config.ts'];
@@ -107,7 +148,17 @@ describe('the production build and calendar are left alone', () => {
     for (const name of ['generalCalendar.ts', 'liturgicalCalendar.ts', 'officeForDay.ts']) {
       const source = PRODUCTION_CALENDAR[`../utils/${name}`];
       expect(source, `expected to find ../utils/${name}`).toBeTypeOf('string');
+      // The calendar never reaches back into the feature: the dependency
+      // runs one way, from the adapter to the calendar, and only that way.
       expect(source).not.toContain('missingParts');
     }
+  });
+
+  it('reads the production calendar only through the adapter', () => {
+    const readers = SHIPPED
+      .filter(([, source]) => /from\s+'\.\.\/\.\.\/utils\//.test(source))
+      .map(([path]) => path)
+      .sort();
+    expect(readers).toEqual(['./adapter/calendarDigest.ts', './adapter/celebrationIds.ts', './adapter/day.ts']);
   });
 });

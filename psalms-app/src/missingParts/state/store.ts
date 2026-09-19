@@ -14,9 +14,13 @@
  * Preferences and example seed material are deliberately absent: the app has
  * its own preferences under `dpc.`, and no placeholder liturgical or
  * scriptural wording ships in the production reader (D10).
+ *
+ * Headless on purpose. The React binding lives next door in useAppState.ts,
+ * which is the only module in this tree allowed to import React; a test
+ * enforces that, so the store and the resolver stay usable and testable
+ * without a renderer.
  */
 
-import { useSyncExternalStore } from 'react';
 import type { ISODate } from '../data/iso';
 import type { Hour, PsalterWeek, Season } from '../data/day';
 import { newId, type MigrationReport } from '../data/migrate';
@@ -78,10 +82,6 @@ export function subscribe(listener: () => void): () => void {
 
 export function getState(): AppState {
   return state;
-}
-
-export function useAppState(): AppState {
-  return useSyncExternalStore(subscribe, getState, getState);
 }
 
 /** Reload from storage. Used by tests and after a migration. */
