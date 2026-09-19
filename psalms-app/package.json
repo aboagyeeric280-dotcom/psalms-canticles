@@ -21,7 +21,9 @@
     "check:calendar": "node tools/check-sanctoral.mjs",
     "check:office": "node tools/check-office.mjs",
     "check:universalis": "node tools/check-universalis.mjs",
-    "fonts": "node tools/fonts.mjs"
+    "fonts": "node tools/fonts.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@fontsource/cormorant-garamond": "^5.3.0",
@@ -36,7 +38,9 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
+    "jsdom": "^30.1.0",
     "typescript": "^5.6.3",
-    "vite": "^6.0.5"
+    "vite": "^6.0.5",
+    "vitest": "^5.0.1"
   }
 }
