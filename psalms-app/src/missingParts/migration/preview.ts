@@ -12,12 +12,16 @@
 import { liturgicalToday } from '../../utils/generalCalendar';
 import { buildCelebrationIndex, resolveCelebrationId } from '../adapter/celebrationIds';
 import { missingPartsDay } from '../adapter/day';
+import type { MissingPartsDay } from '../data/day';
 import { entryMatchesDay } from '../data/resolve';
 import { CURRENT_SCHEMA_VERSION, LEGACY_SCHEMA_VERSION, migrateStore } from '../data/migrate';
 import type { MigrationReport } from '../data/migrate';
-import { SECTIONS, keyId, sectionHasContent, type Entry } from '../data/types';
+import { SECTIONS, keyId, sectionHasContent, type Entry, type SectionId } from '../data/types';
 import { describeKey } from '../data/resolve';
-import { sectionText, type ImportConflict } from '../data/backup';
+import {
+  classifyConflict, classifySection,
+  type ImportConflict, type SectionComparison,
+} from '../data/backup';
 import type { ISODate } from '../data/iso';
 import { legacyDayFor } from './legacyPsalter';
 import { checksum, DESTINATION_KEY, IN_PROGRESS_KEY, RECEIPT_KEY, SOURCE_KEY,
@@ -90,6 +94,8 @@ export interface MigrationPreview {
   report?: MigrationReport;
   /** The source is unreadable. Commit will quarantine it; preview will not. */
   corrupt: boolean;
+  /** The source declares a schema this version does not understand. */
+  futureSchema: boolean;
   /** A receipt already records this exact source. */
   alreadyMigrated: boolean;
   /** An earlier attempt did not finish. */
@@ -99,8 +105,10 @@ export interface MigrationPreview {
 export interface PreviewOptions {
   /** Reference date for the resolution window. Defaults to today. */
   now?: Date;
-  /** Narrower window for tests. */
+  /** Narrower window for tests. The three-year default is the real one. */
   windowDays?: number;
+  /** Seam for tests: how a date becomes a liturgical day. */
+  dayResolver?: DayResolver;
 }
 
 /** Read the legacy store without touching it. */
@@ -134,6 +142,39 @@ function isoOf(date: Date): ISODate {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
+/** One day of the comparison window, worked out once and reused. */
+export interface CoverageDay {
+  iso: ISODate;
+  day: MissingPartsDay;
+  legacy: ReturnType<typeof legacyDayFor>;
+}
+
+export type DayResolver = (when: Date) => MissingPartsDay;
+
+const defaultDayResolver: DayResolver = (when) => missingPartsDay(liturgicalToday(when));
+
+/**
+ * Work the window out ONCE per preview.
+ *
+ * The liturgical day for a date does not depend on which record is asking, so
+ * computing it per record multiplied the calendar work by the number of
+ * records — three years of calendar for every psalter entry in the store. The
+ * window is now built once and every record reads from it, which makes the
+ * cost proportional to the window rather than to window times records.
+ */
+export function buildCoverageWindow(
+  from: Date,
+  windowDays: number,
+  resolveDay: DayResolver = defaultDayResolver,
+): CoverageDay[] {
+  const window: CoverageDay[] = [];
+  for (let offset = 0; offset < windowDays; offset += 1) {
+    const when = new Date(from.getFullYear(), from.getMonth(), from.getDate() + offset);
+    window.push({ iso: isoOf(when), day: resolveDay(when), legacy: legacyDayFor(when) });
+  }
+  return window;
+}
+
 /**
  * Which dates a record applies on under each rule.
  *
@@ -141,24 +182,18 @@ function isoOf(date: Date): ISODate {
  * what moved. Compared over a window rather than for ever, because a psalter
  * key recurs indefinitely and three years is enough to show any difference.
  */
-function coverageFor(entry: Entry, from: Date, windowDays: number) {
+function coverageFor(entry: Entry, window: CoverageDay[]) {
   const production: ISODate[] = [];
   const legacy: ISODate[] = [];
-  for (let offset = 0; offset < windowDays; offset += 1) {
-    const when = new Date(from.getFullYear(), from.getMonth(), from.getDate() + offset);
-    const iso = isoOf(when);
-    if (entryMatchesDay(entry, missingPartsDay(liturgicalToday(when)), entry.hour)) {
-      production.push(iso);
-    }
-    if (entry.keyType === 'psalter') {
-      const legacyDay = legacyDayFor(when);
-      if (
-        entry.season === legacyDay.season
-        && entry.psalterWeek === legacyDay.psalterWeek
-        && entry.weekday === legacyDay.weekday
-      ) {
-        legacy.push(iso);
-      }
+  for (const { iso, day, legacy: legacyDay } of window) {
+    if (entryMatchesDay(entry, day, entry.hour)) production.push(iso);
+    if (
+      entry.keyType === 'psalter'
+      && entry.season === legacyDay.season
+      && entry.psalterWeek === legacyDay.psalterWeek
+      && entry.weekday === legacyDay.weekday
+    ) {
+      legacy.push(iso);
     }
   }
   return { production, legacy };
@@ -196,7 +231,7 @@ export function previewMigration(
       ok: false, errors: ['There is no material from the separate Missing Parts app on this device.'],
       warnings, fromSchemaVersion: 0, toSchemaVersion: CURRENT_SCHEMA_VERSION,
       entries: [], records: [], conflicts: [], totals: emptyTotals, quota,
-      corrupt: false, alreadyMigrated: false, interrupted,
+      corrupt: false, futureSchema: false, alreadyMigrated: false, interrupted,
     };
   }
 
@@ -211,7 +246,7 @@ export function previewMigration(
       errors: ['The material saved by the separate Missing Parts app cannot be read as JSON. Nothing has been changed, and nothing will be: confirming will keep a copy of the unreadable text under its own key and leave the original exactly where it is.'],
       warnings, source, fromSchemaVersion: 0, toSchemaVersion: CURRENT_SCHEMA_VERSION,
       entries: [], records: [], conflicts: [], totals: emptyTotals, quota,
-      corrupt: true, alreadyMigrated, interrupted,
+      corrupt: true, futureSchema: false, alreadyMigrated, interrupted,
     };
   }
 
@@ -219,15 +254,28 @@ export function previewMigration(
     ? Number((parsed as Record<string, unknown>).schemaVersion) || 0
     : 0;
 
+  /* A schema from the future is a blocking condition, not a warning.
+     Normalising it would mean interpreting fields this version cannot see,
+     and writing the result back — even under its own higher version number —
+     would be a rewrite. So nothing is normalised: the preview stops here,
+     carrying the raw source so a verbatim backup can still be taken. */
+  if (declaredVersion > CURRENT_SCHEMA_VERSION) {
+    return {
+      ok: false,
+      errors: [`This material was written by a newer version of the app (schema ${declaredVersion}). This version does not understand it and will not change it. You can still export a byte-for-byte copy.`],
+      warnings, source, fromSchemaVersion: declaredVersion, toSchemaVersion: CURRENT_SCHEMA_VERSION,
+      entries: [], records: [], conflicts: [], totals: emptyTotals, quota,
+      corrupt: false, futureSchema: true, alreadyMigrated, interrupted,
+    };
+  }
+
   const index = buildCelebrationIndex();
   const { file, report } = migrateStore(parsed, {
     resolveCelebration: (value) => resolveCelebrationId(value, index),
   });
   warnings.push(...report.problems);
 
-  if (declaredVersion > CURRENT_SCHEMA_VERSION) {
-    warnings.push(`This data was written by a newer version (schema ${declaredVersion}) and is kept exactly as it is.`);
-  }
+  const coverageWindow = buildCoverageWindow(now, windowDays, options.dayResolver);
 
   // What is already in the destination, so nothing is silently overwritten.
   const existing = readJson<{ entries?: Entry[] }>(store, DESTINATION_KEY)?.entries ?? [];
@@ -241,25 +289,36 @@ export function previewMigration(
     const match = existingByKey.get(keyId(entry));
     let status: RecordPreview['status'] = 'new';
     if (match) {
-      const differing = SECTIONS.filter(
-        (section) =>
-          sectionHasContent(entry, section)
-          && sectionHasContent(match, section)
-          && sectionText(entry, section) !== sectionText(match, section),
-      );
-      const adds = SECTIONS.some((s) => sectionHasContent(entry, s) && !sectionHasContent(match, s));
+      /* Classified with the same pure comparator import uses, so the two
+         cannot drift into disagreeing about what counts as a conflict. */
+      const differing: SectionId[] = [];
+      const whitespaceOnly: SectionId[] = [];
+      const comparisons: SectionComparison[] = [];
+      let adds = false;
+      for (const section of SECTIONS) {
+        const hasIncoming = sectionHasContent(entry, section);
+        const hasExisting = sectionHasContent(match, section);
+        if (hasIncoming && !hasExisting) { adds = true; continue; }
+        if (!hasIncoming && !hasExisting) continue;
+        const comparison = classifySection(entry, match, section);
+        if (comparison === 'identical') continue;
+        differing.push(section);
+        comparisons.push(comparison);
+        if (comparison === 'whitespace-only') whitespaceOnly.push(section);
+      }
       if (differing.length > 0) {
         status = 'conflict';
         conflicts.push({
           key: keyId(entry), description: describeKey(entry), sections: differing,
-          whitespaceOnlySections: [], kind: 'wording', existing: match, incoming: entry,
+          whitespaceOnlySections: whitespaceOnly, kind: classifyConflict(comparisons),
+          existing: match, incoming: entry,
         });
       } else {
         status = adds ? 'enriched' : 'unchanged';
       }
     }
 
-    const { production, legacy } = coverageFor(entry, now, windowDays);
+    const { production, legacy } = coverageFor(entry, coverageWindow);
     const lost = legacy.filter((iso) => !production.includes(iso));
     const gained = production.filter((iso) => !legacy.includes(iso));
     const coverageChanged = entry.keyType === 'psalter' && (lost.length > 0 || gained.length > 0)
@@ -320,6 +379,7 @@ export function previewMigration(
     quota,
     report,
     corrupt: false,
+    futureSchema: false,
     alreadyMigrated,
     interrupted,
   };

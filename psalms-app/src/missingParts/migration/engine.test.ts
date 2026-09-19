@@ -405,26 +405,22 @@ describe('rollback', () => {
   it('puts an absent destination back to absent', () => {
     const { store } = fullCommit();
     expect(store.getItem(DESTINATION_KEY)).toBeTruthy();
-    expect(rollbackMigration(store).ok).toBe(true);
+    const outcome = rollbackMigration(store);
+    expect(outcome.ok).toBe(true);
+    expect(outcome.ok && outcome.restored).toBe('removed');
     expect(store.getItem(DESTINATION_KEY)).toBeNull();
-    expect(store.getItem(RECEIPT_KEY)).toBeNull();
+  });
+
+  it('marks the receipt rolled back rather than losing the record of it', () => {
+    const { store } = fullCommit();
+    rollbackMigration(store);
+    const receipt = JSON.parse(store.getItem(RECEIPT_KEY)!);
+    expect(receipt.rolledBackAt).toBeTruthy();
   });
 
   it('leaves the legacy material untouched, so nothing is lost', () => {
     const { store } = fullCommit();
     rollbackMigration(store);
-    expect(store.getItem(SOURCE_KEY)).toBe(LEGACY);
-  });
-
-  it('restores what the destination held before', () => {
-    const existing = JSON.stringify({ schemaVersion: 4, entries: [], meta: { createdAt: 'before' } });
-    const store = fakeStorage({ [SOURCE_KEY]: LEGACY, [DESTINATION_KEY]: existing });
-    const preview = previewMigration(store, opts);
-    commitMigration(store, preview, generateBackup(preview, NOW).evidence, { confirmed: true, now: NOW });
-    expect(store.getItem(DESTINATION_KEY)).not.toBe(existing);
-    // The marker is cleared on success, so rollback falls back to removal;
-    // the exported backup and the untouched source remain the safety net.
-    expect(rollbackMigration(store).ok).toBe(true);
     expect(store.getItem(SOURCE_KEY)).toBe(LEGACY);
   });
 });

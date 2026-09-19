@@ -73,27 +73,41 @@ function collapseWhitespace(value: string): string {
   return value.replace(/\s+/g, ' ').trim();
 }
 
+/** How two versions of one section differ. */
+export type SectionComparison = 'identical' | 'whitespace-only' | 'wording';
+
 /**
- * True when every field of a section that differs does so only in blank space.
+ * Compare one section of two records. Pure, and the ONE implementation.
+ *
+ * Both import and migration classify with this, so the two cannot drift into
+ * disagreeing about what counts as a conflict.
  *
  * Compared field by field on purpose. The fields are joined with a separator
  * for equality testing, and that separator is not whitespace, so trailing
- * space at the end of one field reads as an internal difference once joined.
+ * space at the end of one field would read as an internal difference once
+ * joined.
  */
-function sectionDiffersOnlyByWhitespace(
+export function classifySection(
   a: Pick<Entry, keyof EntryContent>,
   b: Pick<Entry, keyof EntryContent>,
   section: SectionId,
-): boolean {
+): SectionComparison {
   let sawDifference = false;
+  let visibleDifference = false;
   for (const field of SECTION_META[section].fields) {
     const left = String(a[field] ?? '');
     const right = String(b[field] ?? '');
     if (left === right) continue;
     sawDifference = true;
-    if (collapseWhitespace(left) !== collapseWhitespace(right)) return false;
+    if (collapseWhitespace(left) !== collapseWhitespace(right)) visibleDifference = true;
   }
-  return sawDifference;
+  if (!sawDifference) return 'identical';
+  return visibleDifference ? 'wording' : 'whitespace-only';
+}
+
+/** The overall kind of a set of per-section comparisons. */
+export function classifyConflict(comparisons: SectionComparison[]): ConflictKind {
+  return comparisons.every((c) => c === 'whitespace-only') ? 'whitespace-only' : 'wording';
 }
 
 function copySection(from: Entry, to: Entry, section: SectionId): void {
@@ -242,9 +256,8 @@ export function analyseImport(text: string, existing: Entry[]): ImportPreview {
         adds = true;
         continue;
       }
-      const incomingText = sectionText(incoming, section);
-      const existingText = sectionText(match, section);
-      if (incomingText === existingText) continue;
+      const comparison = classifySection(incoming, match, section);
+      if (comparison === 'identical') continue;
       // Both sides may be visibly empty yet hold different blank space.
       if (!hasIncoming && !hasExisting) {
         differing.push(section);
@@ -253,7 +266,7 @@ export function analyseImport(text: string, existing: Entry[]): ImportPreview {
       }
       if (hasIncoming && hasExisting) {
         differing.push(section);
-        if (sectionDiffersOnlyByWhitespace(incoming, match, section)) whitespaceOnly.push(section);
+        if (comparison === 'whitespace-only') whitespaceOnly.push(section);
       }
     }
     if (differing.length > 0) {
