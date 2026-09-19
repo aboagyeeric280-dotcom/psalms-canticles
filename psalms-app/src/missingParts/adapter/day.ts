@@ -12,15 +12,18 @@ import { liturgicalToday, type LiturgicalToday, type TodayOptions } from '../../
 import { DAY_KEYS } from '../../utils/liturgicalCalendar';
 import type { CanonicalCelebration, Hour, MissingPartsDay } from '../data/day';
 import { christmasWeekFor } from './christmasWeek';
+import { HOLY_WEEK_WEEK_OF_SEASON } from './holyWeek';
 
-/* Seasons in which a week-keyed record cannot apply.
+/* The Triduum takes no week-keyed material.
  *
- * The production calendar gives no week number for either, and neither is a
- * stretch of ordinary weeks: the Triduum has proper texts throughout, and
- * Holy Week is not numbered by the book. Material for these days belongs to
- * an exact date or to the celebration itself. Legacy records keyed to a week
- * here are preserved and flagged rather than silently matched elsewhere. */
-const SEASONS_WITHOUT_WEEK_KEYS: readonly string[] = ['triduum', 'holyweek'];
+ * It is not a stretch of ordinary weeks: every one of its days has proper
+ * texts, and the production calendar numbers no week there. Material for
+ * those days belongs to an exact date or to the celebration itself.
+ *
+ * Holy Week is different. It is one week, it recurs every year, and material
+ * for it must keep recurring — so it is given its own canonical week number
+ * here rather than being pushed onto exact dates. */
+const SEASONS_WITHOUT_WEEK_KEYS: readonly string[] = ['triduum'];
 
 /**
  * The celebrations of the day that may carry missing-parts material.
@@ -57,7 +60,9 @@ export function missingPartsDay(today: LiturgicalToday): MissingPartsDay {
   const season = today.season;
   const weekOfSeason = season === 'christmas'
     ? christmasWeekFor(today.iso)
-    : today.seasonWeek;
+    : season === 'holyweek'
+      ? HOLY_WEEK_WEEK_OF_SEASON
+      : today.seasonWeek;
 
   return {
     date: today.iso,

@@ -52,7 +52,7 @@ describe('self-check 6: export then import restores the same data', () => {
 
   it('records the schema version and export date', () => {
     const backup = buildBackup({ ...emptyStore(), entries: [READING] }, new Date('2026-09-18T10:00:00Z'));
-    expect(backup.schemaVersion).toBe(3);
+    expect(backup.schemaVersion).toBe(4);
     expect(backup.exportedAt).toBe('2026-09-18T10:00:00.000Z');
     expect(backup.entryCount).toBe(1);
     expect(backup.app).toBe('psalms-canticles-missing-parts');

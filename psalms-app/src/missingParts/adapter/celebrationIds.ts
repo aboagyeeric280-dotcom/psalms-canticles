@@ -181,3 +181,74 @@ export function celebrationsMissingIds(fromYear: number, toYear: number): string
   }
   return [...missing];
 }
+
+/* ------------------------------------------------- resolving a stored value */
+
+export type CelebrationIdResolution =
+  /** Already a canonical id this calendar produces. */
+  | { kind: 'canonical'; id: string }
+  /** A legacy slug or a display name that identifies exactly one observance. */
+  | { kind: 'mapped'; id: string; from: string }
+  /** Identifies more than one observance. Never guessed at. */
+  | { kind: 'ambiguous'; candidates: string[] }
+  /** Not recognised at all. */
+  | { kind: 'unknown' };
+
+export interface CelebrationIndex {
+  /** Canonical ids the calendar produces. */
+  ids: Set<string>;
+  /** Slugged display name to the canonical ids carrying it. */
+  byName: Map<string, Set<string>>;
+}
+
+/**
+ * Build the lookup the resolver needs from the calendar itself.
+ *
+ * Names are indexed to their ids so that a record storing a display name
+ * resolves — but only when that name identifies exactly one observance. The
+ * General Calendar and the Order's own calendar both keep St Catherine of
+ * Siena and St Dominic, under different names and ranks, and they are
+ * distinct observances with distinct ids (ratified). Their names differ, so
+ * each still resolves on its own.
+ */
+export function buildCelebrationIndex(fromYear = 2026, toYear = 2030): CelebrationIndex {
+  const effective = collectCanonicalIds(fromYear, toYear);
+  const byName = new Map<string, Set<string>>();
+  for (const [id, name] of effective) {
+    const slug = legacySlug(name);
+    const bucket = byName.get(slug) ?? new Set<string>();
+    bucket.add(id);
+    byName.set(slug, bucket);
+  }
+  return { ids: new Set(effective.keys()), byName };
+}
+
+/**
+ * Work out which observance a stored celebration value refers to.
+ *
+ * In order: an id the calendar already produces; the legacy app's own slug;
+ * a display name that identifies exactly one observance. A value matching
+ * more than one observance is reported as ambiguous and a value matching none
+ * as unknown — neither is ever turned into an invented id, and one record is
+ * never mapped onto two observances.
+ */
+export function resolveCelebrationId(
+  value: string | undefined,
+  index: CelebrationIndex,
+): CelebrationIdResolution {
+  if (!value || !value.trim()) return { kind: 'unknown' };
+
+  if (index.ids.has(value)) return { kind: 'canonical', id: value };
+
+  const slug = legacySlug(value);
+  const alias = LEGACY_CELEBRATION_ALIASES[slug];
+  if (alias) return { kind: 'mapped', id: alias, from: slug };
+
+  if (index.ids.has(slug)) return { kind: 'canonical', id: slug };
+
+  const byName = index.byName.get(slug);
+  if (byName && byName.size === 1) return { kind: 'mapped', id: [...byName][0], from: slug };
+  if (byName && byName.size > 1) return { kind: 'ambiguous', candidates: [...byName].sort() };
+
+  return { kind: 'unknown' };
+}

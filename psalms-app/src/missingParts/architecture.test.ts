@@ -154,11 +154,84 @@ describe('the production build and calendar are left alone', () => {
     }
   });
 
-  it('reads the production calendar only through the adapter', () => {
+  it('reads the production calendar only from the adapter and migration', () => {
     const readers = SHIPPED
       .filter(([, source]) => /from\s+'\.\.\/\.\.\/utils\//.test(source))
       .map(([path]) => path)
       .sort();
-    expect(readers).toEqual(['./adapter/calendarDigest.ts', './adapter/celebrationIds.ts', './adapter/day.ts']);
+    // The data core and the store are not among them, which is the point.
+    for (const path of readers) {
+      expect(path, `${path} may not read the production calendar`)
+        .toMatch(/^\.\/(adapter|migration)\//);
+    }
+    expect(readers.length).toBeGreaterThan(0);
+  });
+});
+
+describe('the migration engine is not reachable from the application', () => {
+  /* Phase 3 builds the engine only. Nothing in the reader may import it, and
+     no migration may run on startup: it is driven by a screen that does not
+     exist yet, and until it does, none of this can touch a reader's data. */
+
+  const APP_SOURCES = Object.entries(
+    import.meta.glob('../**/*.{ts,tsx}', {
+      query: '?raw', import: 'default', eager: true,
+    }) as Record<string, string>,
+  ).filter(([path]) => !path.includes('/missingParts/'));
+
+  it('finds the application source to check', () => {
+    expect(APP_SOURCES.length).toBeGreaterThan(20);
+  });
+
+  it.each(APP_SOURCES.map(([path, source]) => [path, source]))(
+    '%s does not import the missing-parts feature',
+    (_path, source) => {
+      expect(source).not.toMatch(/from\s+'[^']*missingParts/);
+      expect(source).not.toMatch(/import\s*\(\s*'[^']*missingParts/);
+    },
+  );
+
+  it('leaves the entry point with no reference to it', () => {
+    for (const name of ['../main.tsx', '../App.tsx']) {
+      const source = APP_SOURCES.find(([path]) => path === name)?.[1];
+      expect(source, `expected to find ${name}`).toBeTypeOf('string');
+      expect(source).not.toContain('missingParts');
+      expect(source).not.toContain('migrat');
+    }
+  });
+
+  it('adds no route, no navigation entry and no change to the hour shape', () => {
+    const sidebar = APP_SOURCES.find(([p]) => p.endsWith('/Sidebar.tsx'))?.[1];
+    const ordinary = APP_SOURCES.find(([p]) => p.endsWith('/data/ordinary.ts'))?.[1];
+    expect(sidebar).not.toContain('missing');
+    expect(ordinary).not.toContain('missingParts');
+  });
+
+  it('runs no migration on import: the engine only exports functions', () => {
+    for (const [path, source] of SHIPPED) {
+      if (!path.startsWith('./migration/')) continue;
+      // No top-level call that could write while a module is being loaded.
+      expect(source, `${path} writes at import time`).not.toMatch(/^\s*commitMigration\(/m);
+      expect(source, `${path} migrates at import time`).not.toMatch(/^\s*previewMigration\(/m);
+    }
+  });
+
+  it('keeps the migration engine free of React', () => {
+    for (const [path, source] of SHIPPED) {
+      if (!path.startsWith('./migration/')) continue;
+      expect(source, `${path} imports React`).not.toMatch(/from\s+'react/);
+    }
+  });
+
+  it('routes every migration write through the guarded store', () => {
+    for (const [path, source] of SHIPPED) {
+      if (!path.startsWith('./migration/')) continue;
+      // Nothing reaches for window.localStorage directly except the one
+      // place that builds the guarded wrapper.
+      if (path === './migration/storageIo.ts') continue;
+      // Prose may name it; code may not reach for it.
+      expect(source, `${path} touches localStorage directly`)
+        .not.toMatch(/(window\s*\.\s*)?localStorage\s*\.\s*(get|set|remove|clear|key)/);
+    }
   });
 });

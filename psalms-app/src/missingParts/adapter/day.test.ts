@@ -150,11 +150,16 @@ describe('test 6: Christmas weeks are derived only in the adapter', () => {
 });
 
 describe('week keys where the calendar has no week', () => {
-  it('forbids them in the Triduum and Holy Week', () => {
+  it('forbids them in the Triduum, whose days all have proper texts', () => {
     expect(dayOf('2027-03-25').season).toBe('triduum');
     expect(dayOf('2027-03-25').allowsWeekKey).toBe(false);
+    expect(dayOf('2027-03-25').weekOfSeason).toBeNull();
+  });
+
+  it('allows them in Holy Week, which is one week and recurs every year', () => {
     expect(dayOf('2027-03-23').season).toBe('holyweek');
-    expect(dayOf('2027-03-23').allowsWeekKey).toBe(false);
+    expect(dayOf('2027-03-23').allowsWeekKey).toBe(true);
+    expect(dayOf('2027-03-23').weekOfSeason).toBe(1);
   });
 
   it('allows them everywhere the calendar does number the week', () => {
@@ -249,5 +254,43 @@ describe('the adapter reports the day faithfully', () => {
       expect(celebration.id).toBeTruthy();
       expect(celebration.name).toBeTruthy();
     }
+  });
+});
+
+describe('Holy Week keeps its material year after year', () => {
+  const material = entry({
+    keyType: 'week', hour: 'morning', season: 'holyweek', weekOfSeason: 1,
+    responsory: 'A responsory for Holy Week.',
+  });
+
+  // Palm Sunday, and the Wednesday of Holy Week, in three successive years.
+  it.each([
+    ['2026', '2026-03-29', '2026-04-01'],
+    ['2027', '2027-03-21', '2027-03-24'],
+    ['2028', '2028-04-09', '2028-04-12'],
+  ])('resolves throughout Holy Week in %s', (_year, palmSunday, wednesday) => {
+    for (const iso of [palmSunday, wednesday]) {
+      const day = dayOf(iso);
+      expect(day.season, iso).toBe('holyweek');
+      expect(resolveOffice([material], day, 'morning').sections.responsory.present, iso).toBe(true);
+    }
+  });
+
+  it.each([
+    ['2026', '2026-04-02', '2026-04-04'],
+    ['2027', '2027-03-25', '2027-03-27'],
+    ['2028', '2028-04-13', '2028-04-15'],
+  ])('does not resolve in the Triduum of %s', (_year, thursday, saturday) => {
+    for (const iso of [thursday, saturday]) {
+      const day = dayOf(iso);
+      expect(day.season, iso).toBe('triduum');
+      expect(resolveOffice([material], day, 'morning').sections.responsory.present, iso).toBe(false);
+    }
+  });
+
+  it('does not leak back into Lent', () => {
+    const day = dayOf('2027-03-10');
+    expect(day.season).toBe('lent');
+    expect(resolveOffice([material], day, 'morning').sections.responsory.present).toBe(false);
   });
 });

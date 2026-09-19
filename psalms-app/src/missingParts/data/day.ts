@@ -30,6 +30,21 @@ export type Season = SeasonKey;
 /** The four-week psalter cycle. */
 export type PsalterWeek = 1 | 2 | 3 | 4;
 
+/* Holy Week's canonical week number.
+ *
+ * The production calendar gives Holy Week its own season and numbers no weeks
+ * within it. Material for Holy Week still recurs every year, so turning it
+ * into exact dates would destroy exactly the property that makes it useful.
+ * The canonical representation is therefore season `holyweek`, week 1 — one
+ * week, numbered one — derived at the adapter boundary and used by migration
+ * to re-key legacy records that said "Lent, week 6".
+ *
+ * The production calendar's own season calculation is untouched. */
+export const HOLY_WEEK_WEEK_OF_SEASON = 1;
+
+/* What legacy data called Holy Week: the sixth week of Lent. */
+export const LEGACY_HOLY_WEEK = { season: 'lent', weekOfSeason: 6 } as const;
+
 /* The hours that can carry missing-parts material.
 
    `night` is the book's Compline. The Office of Readings is deliberately

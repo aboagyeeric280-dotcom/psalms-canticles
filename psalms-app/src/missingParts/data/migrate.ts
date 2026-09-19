@@ -18,6 +18,7 @@
  */
 
 import { isISODate, type ISODate } from './iso';
+import { HOLY_WEEK_WEEK_OF_SEASON, LEGACY_HOLY_WEEK } from './day';
 import type { Hour, PsalterWeek, Season } from './day';
 import {
   EMPTY_CONTENT,
@@ -34,7 +35,24 @@ import {
   type StoreMeta,
 } from './types';
 
-export const CURRENT_SCHEMA_VERSION = 3;
+/* Schema 4 is the integrated format. It differs from the separate Missing
+   Parts app's schema 3 in four ways, all additive or re-keying — no content
+   field changes shape and none is ever rewritten:
+
+     · `hour` admits 'evening-before', so First Vespers has its own material;
+     · `season` admits 'holyweek' and 'triduum', which the production calendar
+       distinguishes from Lent;
+     · `celebrationId` holds a canonical id from the production calendar
+       rather than a slug of a display name;
+     · Holy Week material is keyed season 'holyweek', week 1, where schema 3
+       said Lent, week 6.
+
+   A schema 3 file reads and normalises into schema 4. A file from some later
+   version is preserved and reported, never downgraded. */
+export const CURRENT_SCHEMA_VERSION = 4;
+
+/** The schema the separate Missing Parts app wrote. */
+export const LEGACY_SCHEMA_VERSION = 3;
 
 const CONTENT_FREE_NOTE =
   'This record has no visible text in any of the four sections. It has been kept rather than discarded.';
@@ -162,19 +180,56 @@ export function newId(prefix = 'e'): string {
   return `${prefix}_${Date.now().toString(36)}_${idCounter.toString(36)}${random}`;
 }
 
+/* How a stored celebration value was understood. The data core cannot know
+   the calendar's canonical ids, so the caller supplies the resolver; the
+   migration layer passes the adapter's. Without one, celebration ids are left
+   exactly as they were found. */
+export type CelebrationLookup = (value: string) =>
+  | { kind: 'canonical'; id: string }
+  | { kind: 'mapped'; id: string; from: string }
+  | { kind: 'ambiguous'; candidates: string[] }
+  | { kind: 'unknown' };
+
+export interface NormaliseOptions {
+  resolveCelebration?: CelebrationLookup;
+  /** The schema the record came from, when the caller knows it. */
+  fromSchemaVersion?: number;
+}
+
+/** What normalising changed about a record, for the migration preview. */
+export interface EntryChanges {
+  /** The key itself moved: a celebration id mapped, or Holy Week re-keyed. */
+  reKeyed: boolean;
+  celebrationIdChanged?: { from: string; to: string };
+  holyWeekConverted?: boolean;
+  ambiguousCelebration?: string[];
+  unknownCelebration?: string;
+}
+
 export interface NormalisedEntry {
   entry: Entry | null;
   problems: string[];
+  changes: EntryChanges;
 }
+
+/* The one review note Holy Week conversion adds. Held as a constant so that
+   re-running migration recognises its own note and does not add a second. */
+export const HOLY_WEEK_REVIEW_NOTE =
+  'This was keyed to Lent, week 6, which this calendar keeps as Holy Week. It has been re-keyed to Holy Week and still applies every year; please check it reads correctly.';
 
 /**
  * Turn an unknown record into an Entry. Returns problems rather than throwing
  * so callers can show the user what was wrong before anything is written.
  */
-export function normaliseEntry(raw: unknown, label = 'entry'): NormalisedEntry {
+export function normaliseEntry(
+  raw: unknown,
+  label = 'entry',
+  options: NormaliseOptions = {},
+): NormalisedEntry {
   const problems: string[] = [];
+  const changes: EntryChanges = { reKeyed: false };
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-    return { entry: null, problems: [`${label}: not an object`] };
+    return { entry: null, problems: [`${label}: not an object`], changes };
   }
   const record = raw as Record<string, unknown>;
 
@@ -186,12 +241,40 @@ export function normaliseEntry(raw: unknown, label = 'entry'): NormalisedEntry {
   const weekday = parseWeekday(record.weekday ?? record.day);
   const weekOfSeason = parseWeekOfSeason(record.weekOfSeason ?? record.seasonWeek);
   // An id is an opaque token, not text the user reads: trimming is safe here.
-  const celebrationId = typeof record.celebrationId === 'string' && record.celebrationId.trim()
+  const storedCelebrationId = typeof record.celebrationId === 'string' && record.celebrationId.trim()
     ? record.celebrationId.trim()
     : undefined;
   // The display name is the user's wording and is stored exactly as given.
   const celebrationNameRaw = content(record.celebrationName ?? record.celebration);
   const celebrationName = celebrationNameRaw.length > 0 ? celebrationNameRaw : undefined;
+  /* Convert a legacy celebration reference to a canonical id. An id that
+     cannot be resolved is KEPT exactly as stored and flagged: a record is
+     never mapped onto two observances, and a name is never turned into an
+     invented id. */
+  let celebrationId = storedCelebrationId;
+  if (options.resolveCelebration) {
+    const candidateValue = storedCelebrationId ?? celebrationNameRaw;
+    if (candidateValue) {
+      const resolution = options.resolveCelebration(candidateValue);
+      if (resolution.kind === 'canonical') {
+        celebrationId = resolution.id;
+      } else if (resolution.kind === 'mapped') {
+        celebrationId = resolution.id;
+        if (storedCelebrationId && storedCelebrationId !== resolution.id) {
+          changes.reKeyed = true;
+          changes.celebrationIdChanged = { from: storedCelebrationId, to: resolution.id };
+        } else if (!storedCelebrationId) {
+          changes.reKeyed = true;
+          changes.celebrationIdChanged = { from: resolution.from, to: resolution.id };
+        }
+      } else if (resolution.kind === 'ambiguous') {
+        changes.ambiguousCelebration = resolution.candidates;
+      } else if (storedCelebrationId) {
+        changes.unknownCelebration = storedCelebrationId;
+      }
+    }
+  }
+
   const celebrationRank = CELEBRATION_RANK_SYNONYMS[slug(record.celebrationRank ?? record.rank)];
   const calendarScope = CALENDAR_SCOPE_SYNONYMS[slug(record.calendarScope ?? record.calendar)];
   const celebrationMonth = parseCalendarNumber(record.celebrationMonth ?? record.month, 1, 12);
@@ -252,6 +335,15 @@ export function normaliseEntry(raw: unknown, label = 'entry'): NormalisedEntry {
     reviewReasons.push('This psalter record is missing its season, psalter week or weekday.');
   }
 
+  if (changes.ambiguousCelebration) {
+    needsReview = true;
+    reviewReasons.push(`This celebration could mean more than one observance in this calendar (${changes.ambiguousCelebration.join(', ')}), so it has been left exactly as it was for you to choose.`);
+  }
+  if (changes.unknownCelebration) {
+    needsReview = true;
+    reviewReasons.push('This calendar does not recognise the celebration this record is filed under. The record has been kept exactly as it was; please re-key it.');
+  }
+
   // A field of only whitespace displays as absent; say so rather than hide it.
   const whitespaceOnly = (Object.keys(fields) as (keyof typeof fields)[])
     .filter((field) => isWhitespaceOnly(fields[field]));
@@ -306,7 +398,31 @@ export function normaliseEntry(raw: unknown, label = 'entry'): NormalisedEntry {
   const hasAnyContent = SECTIONS.some((section) => sectionHasContent(entry, section));
   if (!hasAnyContent) problems.push(`${label}: no reading, responsory, intercessions or prayer`);
 
-  return { entry, problems };
+  return { entry, problems, changes };
+}
+
+/**
+ * Re-key a record that says "Lent, week 6" as Holy Week.
+ *
+ * Schema 3 had no Holy Week: the production calendar separates it from Lent,
+ * so legacy material for Palm Sunday and the days after it arrives keyed to
+ * the sixth week of Lent and would otherwise match nothing at all.
+ *
+ * Content is untouched. The record is flagged, and the note is added only
+ * once however many times migration runs.
+ */
+export function convertLegacyHolyWeek(entry: Entry): boolean {
+  if (entry.keyType !== 'week') return false;
+  if (entry.season !== LEGACY_HOLY_WEEK.season) return false;
+  if (entry.weekOfSeason !== LEGACY_HOLY_WEEK.weekOfSeason) return false;
+
+  entry.season = 'holyweek';
+  entry.weekOfSeason = HOLY_WEEK_WEEK_OF_SEASON;
+  entry.needsReview = true;
+  const notes = new Set((entry.reviewNote ? [entry.reviewNote] : []));
+  notes.add(HOLY_WEEK_REVIEW_NOTE);
+  entry.reviewNote = [...notes].join(' ');
+  return true;
 }
 
 export interface MigrationReport {
@@ -315,6 +431,10 @@ export interface MigrationReport {
   entriesIn: number;
   entriesOut: number;
   prayersSplitToWeek: number;
+  holyWeekConverted: number;
+  celebrationsReKeyed: number;
+  celebrationsAmbiguous: number;
+  celebrationsUnknown: number;
   flaggedForReview: number;
   /** Records with no visible content in any section. Kept, never dropped. */
   contentFreeKept: number;
@@ -336,7 +456,10 @@ function emptyMeta(): StoreMeta {
  * content in any section; that contradicted "never silently discard", so such
  * records are now kept and flagged for review instead.
  */
-export function migrateStore(raw: unknown): { file: StoreFile; report: MigrationReport } {
+export function migrateStore(
+  raw: unknown,
+  options: NormaliseOptions = {},
+): { file: StoreFile; report: MigrationReport } {
   const problems: string[] = [];
   let fromVersion = 0;
   let rawEntries: unknown[] = [];
@@ -361,13 +484,23 @@ export function migrateStore(raw: unknown): { file: StoreFile; report: Migration
 
   const entries: Entry[] = [];
   let prayersSplitToWeek = 0;
+  let holyWeekConverted = 0;
+  let celebrationsReKeyed = 0;
+  let celebrationsAmbiguous = 0;
+  let celebrationsUnknown = 0;
   let flaggedForReview = 0;
   let contentFreeKept = 0;
 
   rawEntries.forEach((rawEntry, index) => {
-    const { entry, problems: entryProblems } = normaliseEntry(rawEntry, `entry ${index + 1}`);
+    const { entry, problems: entryProblems, changes } = normaliseEntry(
+      rawEntry, `entry ${index + 1}`, { ...options, fromSchemaVersion: fromVersion },
+    );
     problems.push(...entryProblems);
     if (!entry) return;
+
+    if (changes.celebrationIdChanged) celebrationsReKeyed += 1;
+    if (changes.ambiguousCelebration) celebrationsAmbiguous += 1;
+    if (changes.unknownCelebration) celebrationsUnknown += 1;
 
     const wasLegacy = !(rawEntry as Record<string, unknown> | null)?.hasOwnProperty?.('keyType');
 
@@ -398,6 +531,8 @@ export function migrateStore(raw: unknown): { file: StoreFile; report: Migration
       prayersSplitToWeek += 1;
     }
 
+    if (convertLegacyHolyWeek(entry)) holyWeekConverted += 1;
+
     if (!SECTIONS.some((section) => sectionHasContent(entry, section))) {
       contentFreeKept += 1;
       entry.needsReview = true;
@@ -411,8 +546,15 @@ export function migrateStore(raw: unknown): { file: StoreFile; report: Migration
     entries.push(entry);
   });
 
+  /* A file from a newer version is preserved at its own version. Claiming to
+     have converted it down to ours would be a lie, and would invite a later
+     write that silently drops whatever it carries that we cannot see. */
+  if (fromVersion > CURRENT_SCHEMA_VERSION) {
+    problems.push(`This data was written by a newer version of the app (schema ${fromVersion}). It has been kept exactly as it was; anything this version does not understand is preserved but not shown.`);
+  }
+
   const file: StoreFile = {
-    schemaVersion: CURRENT_SCHEMA_VERSION,
+    schemaVersion: Math.max(fromVersion, CURRENT_SCHEMA_VERSION),
     entries,
     meta: {
       ...meta,
@@ -430,9 +572,17 @@ export function migrateStore(raw: unknown): { file: StoreFile; report: Migration
       entriesIn: rawEntries.length,
       entriesOut: entries.length,
       prayersSplitToWeek,
+      holyWeekConverted,
+      celebrationsReKeyed,
+      celebrationsAmbiguous,
+      celebrationsUnknown,
       flaggedForReview,
       contentFreeKept,
-      changed: fromVersion !== CURRENT_SCHEMA_VERSION || prayersSplitToWeek > 0,
+      changed:
+        fromVersion !== CURRENT_SCHEMA_VERSION
+        || prayersSplitToWeek > 0
+        || holyWeekConverted > 0
+        || celebrationsReKeyed > 0,
       problems,
     },
   };
