@@ -22,10 +22,13 @@ import { DAY_KEYS, HOUR_NAMES, ROMAN, liturgicalDay } from './utils/liturgicalCa
 import { loadObserved, pushRecent, saveObserved, usePrefs } from './utils/storage';
 import { scrollToTop } from './utils/scroll';
 import { latinHour } from './utils/hours';
-import { liturgicalToday } from './utils/generalCalendar';
+import { keepsFirstVespers, liturgicalToday } from './utils/generalCalendar';
+import { officeForDay } from './utils/officeForDay';
 import LiturgicalHeader from './components/LiturgicalHeader';
 import Sidebar from './components/Sidebar';
 import { BookmarksPage, CalendarPage, CanticlesPage, PsalterPage } from './components/NavPages';
+import OfficeSections from './missingParts/ui/OfficeSections';
+import MissingPartsPage, { tabFromRoute } from './missingParts/ui/MissingPartsPage';
 
 function useHashRoute() {
   const [route, setRoute] = useState(() => window.location.hash || '#/');
@@ -130,6 +133,11 @@ export default function App() {
   } else if (head === 'bookmarks') {
     title = 'Bookmarks';
     body = <BookmarksPage onGo={go} viewed={viewed} setViewed={setViewed} />;
+  } else if (head === 'missing') {
+    const tab = tabFromRoute(route);
+    title = tab === 'progress' ? 'Progress' : tab === 'review' ? 'Review' : 'Your own material';
+    kicker = 'Your own material';
+    body = <MissingPartsPage tab={tab} onGo={go} />;
   } else if (head === 'office' && arg) {
     const office = OFFICES.find(o => o.id === arg);
     if (!office) body = <NotFound onGo={go} what={arg} />;
@@ -137,6 +145,14 @@ export default function App() {
       const shape = HOUR_SHAPE[office.hour];
       title = `${office.dayName} — ${HOUR_NAMES[office.hour]}`;
       kicker = `Week ${ROMAN[office.week]}`;
+      /* Is this the office the calendar appoints for today at this hour, or a
+         psalter page opened for reference? The reader's own material is keyed
+         to a liturgical day, so it belongs only on the former. Asking the
+         router that appoints the office is the only reliable way to tell: on
+         a feast, today's Morning Prayer is Sunday I, not today's weekday. */
+      const appointed = officeForDay(today, { firstVespers: keepsFirstVespers(viewed) });
+      const boundToCalendar =
+        appointed.hours.find(h => h.hour === office.hour)?.route === route;
       body = (
         <OfficeReader
           {...pageProps}
@@ -154,6 +170,20 @@ export default function App() {
           </>}
           outro={<>
             <HourShapeCard shape={shape} onGo={go} where="after" />
+            {/* The four sections the book leaves out, kept on this device.
+                Rendered here rather than among the book's own blocks: it is
+                the reader's material, and it never joins the search index. */}
+            <OfficeSections
+              when={viewed}
+              hour={office.hour}
+              dayTitle={today.title}
+              observed={observed}
+              boundToCalendar={boundToCalendar}
+              onOpenToday={() => {
+                const to = appointed.hours.find(h => h.hour === office.hour)?.route;
+                if (to) go(to);
+              }}
+            />
             {/* The parts of the Hour our book does not print. A link only —
                 nothing is fetched from Universalis, here or anywhere. */}
             {prefs.universalis && <UniversalisLink hour={office.hour} prayedOn={viewed} />}
@@ -195,7 +225,15 @@ export default function App() {
     // A search may name the evening whose psalms it found the words in.
     const day = DAY_KEYS.includes(arg as DayKey) ? (arg as DayKey) : undefined;
     body = (
-      <ComplineView {...pageProps} day={day} latin={latinHour('compline')} resumeKey={route} />
+      <ComplineView
+        {...pageProps}
+        day={day}
+        latin={latinHour('compline')}
+        resumeKey={route}
+        sections={
+          <OfficeSections when={viewed} hour="night" dayTitle={today.title} observed={observed} />
+        }
+      />
     );
   } else if (head === 'canticle' && (arg === 'zechariah' || arg === 'mary')) {
     title = arg === 'zechariah' ? 'Canticle of Zechariah' : 'Canticle of Mary';

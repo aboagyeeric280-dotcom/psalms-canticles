@@ -1,0 +1,191 @@
+import { expect, test, type Page } from '@playwright/test';
+import { keepsFirstVespers, liturgicalToday } from '../src/utils/generalCalendar';
+import { officeForDay } from '../src/utils/officeForDay';
+
+/* Personal material belongs to a liturgical day, so it only appears on the
+   office the calendar appoints for today — which psalter page that is depends
+   on the date, and on a feast is Sunday I rather than today's weekday. The
+   tests ask the same router the app asks rather than hard-coding a page. */
+function appointedRoute(hour: 'morning' | 'evening'): string {
+  const now = new Date();
+  const plan = officeForDay(liturgicalToday(now), { firstVespers: keepsFirstVespers(now) });
+  const route = plan.hours.find((h) => h.hour === hour)?.route;
+  if (!route?.startsWith('#/office/')) {
+    throw new Error(`today's ${hour} is not an office page: ${route}`);
+  }
+  return route;
+}
+
+/** A psalter page that is deliberately NOT the one appointed for today. */
+function unappointedRoute(): string {
+  const appointed = appointedRoute('morning');
+  const candidates = ['#/office/w1-tue-morning', '#/office/w2-wed-morning', '#/office/w3-thu-morning'];
+  return candidates.find((route) => route !== appointed)!;
+}
+
+async function openOffice(page: Page) {
+  await page.goto(`./${appointedRoute('morning')}`);
+  await page.getByRole('heading', { name: 'Your own material' }).scrollIntoViewIfNeeded();
+}
+
+async function addSection(page: Page, addLabel: RegExp, fieldLabel: string, text: string) {
+  await page.getByRole('button', { name: addLabel }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel(fieldLabel, { exact: true }).fill(text);
+  await dialog.getByRole('button', { name: 'Save' }).click();
+  await expect(dialog).toBeHidden();
+}
+
+test('19: the office has no horizontal overflow at 375px', async ({ page }, info) => {
+  test.skip(info.project.name !== 'mobile', 'width-specific');
+  await openOffice(page);
+  const overflow = await page.evaluate(() => ({
+    scroll: document.documentElement.scrollWidth,
+    client: document.documentElement.clientWidth,
+  }));
+  expect(overflow.scroll).toBeLessThanOrEqual(overflow.client + 1);
+});
+
+test('the four sections render, empty, inside the office', async ({ page }) => {
+  await openOffice(page);
+  await expect(page.getByText('Not yet added — tap to add it')).toHaveCount(4);
+  await expect(page.getByRole('heading', { name: 'Short reading' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Concluding prayer' })).toBeVisible();
+});
+
+test('the surrounding office is untouched', async ({ page }) => {
+  await openOffice(page);
+  // The book's own text, the shape of the hour and the links all still there.
+  await expect(page.getByRole('button', { name: /After the psalmody/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Morning Prayer/ }).first()).toBeVisible();
+  await expect(page.locator('.reader')).toBeVisible();
+});
+
+test('adding a section shows it at once and it survives a reload', async ({ page }) => {
+  await openOffice(page);
+  await addSection(page, /^Add the responsory/i, 'Responsory', 'V. In the morning.\nR. In the morning.');
+  await expect(page.getByText('V. In the morning.')).toBeVisible();
+  await expect(page.getByText('Yours')).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByText('V. In the morning.')).toBeVisible();
+});
+
+test('20: saved material survives the app being closed and reopened', async ({ page }) => {
+  await openOffice(page);
+  await addSection(page, /^Add the intercessions/i, 'Intercessions', 'For the Church: Lord, hear us.');
+  await expect(page.getByText('For the Church: Lord, hear us.')).toBeVisible();
+
+  // The whole build is taken into the cache, so there is something to reopen.
+  await page.waitForFunction(() => navigator.serviceWorker.controller !== null, null, { timeout: 20_000 });
+  const cached = await page.evaluate(async () => {
+    const names = await caches.keys();
+    const cache = await caches.open(names[0]);
+    return (await cache.keys()).length;
+  });
+  expect(cached).toBeGreaterThan(30);
+
+  // Reopened from scratch, the reader's own material is still there.
+  await page.reload();
+  await expect(page.getByText('For the Church: Lord, hear us.')).toBeVisible();
+});
+
+/* The service worker matches the cache with `ignoreVary`, so a host that
+ * answers `Vary: Origin` cannot hide the precached assets from the page's
+ * module-script requests. Without that, everything precaches correctly and
+ * the app still fails to start with no network — which is the one thing an
+ * offline-first breviary must not do.
+ */
+test('20b: the app reopens with no network at all, personal material intact', async ({ page, context }) => {
+  await openOffice(page);
+  await addSection(page, /^Add the responsory/i, 'Responsory', 'Offline responsory.');
+  await page.waitForFunction(() => navigator.serviceWorker.controller !== null, null, { timeout: 20_000 });
+
+  await context.setOffline(true);
+  await page.reload();
+
+  await expect(page.getByRole('heading', { name: 'Your own material' })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText('Offline responsory.')).toBeVisible();
+  // The book itself came back too, not just the shell.
+  await expect(page.locator('.reader')).toBeVisible();
+  await context.setOffline(false);
+});
+
+test('18: the keyboard reaches the sheet and comes back', async ({ page }) => {
+  await openOffice(page);
+  const add = page.getByRole('button', { name: /^Add the responsory/i });
+  await add.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toBeHidden();
+  await expect(add).toBeFocused();
+});
+
+test('every control clears a 44px touch target', async ({ page }) => {
+  await openOffice(page);
+  for (const button of await page.locator('.mp-office button').all()) {
+    const box = await button.boundingBox();
+    if (!box) continue;
+    expect(box.height).toBeGreaterThanOrEqual(43.5);
+  }
+});
+
+test('16: the search index still finds the book, and not personal text', async ({ page }) => {
+  await openOffice(page);
+  await addSection(page, /^Add the responsory/i, 'Responsory', 'Zzzqqx a word found nowhere in the book.');
+  // The header shows one of two search controls depending on width.
+  await page.locator('button.hdr__search, button.hdr__find').locator('visible=true').first().click();
+  const box = page.locator('input.search__input');
+  await expect(box).toBeVisible();
+
+  /* Scoped to the search pane: the office behind it of course still shows
+     the reader's own words — the point is that the INDEX does not carry
+     them, so they never come back as a result. */
+  const pane = page.locator('.searchpane');
+  await box.fill('Zzzqqx');
+  await page.waitForTimeout(500);
+  // The query itself is echoed in the pane; the reader's SENTENCE is not,
+  // because it was never indexed.
+  await expect(pane.getByText('a word found nowhere in the book', { exact: false })).toHaveCount(0);
+
+  // The book itself is still searchable, exactly as before.
+  await box.fill('shepherd');
+  await page.waitForTimeout(500);
+  await expect(pane).toContainText(/psalm/i);
+});
+
+test('17: the published weekly prayers page is unchanged', async ({ page }) => {
+  await page.goto('./#/prayers');
+  await expect(page.getByRole('heading', { name: 'Weekly Prayers' }).first()).toBeVisible();
+  await expect(page.locator('body')).toContainText('collects for the weeks of the year');
+  // No claim is made about which of them belongs to today.
+  await expect(page.locator('body')).not.toContainText(/this week.s prayer/i);
+});
+
+test('R35: a psalter page opened for reference shows no personal material', async ({ page }) => {
+  // Today's own office carries the sections.
+  await openOffice(page);
+  await expect(page.getByText('Not yet added — tap to add it')).toHaveCount(4);
+
+  // A psalter page opened directly does not, and says why.
+  await page.goto(`./${unappointedRoute()}`);
+  await page.getByRole('heading', { name: 'Your own material' }).scrollIntoViewIfNeeded();
+  await expect(page.getByText(/belong to a date in the calendar/)).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Add the/i })).toHaveCount(0);
+  await expect(page.getByText('Not yet added — tap to add it')).toHaveCount(0);
+});
+
+test('R35: the way back to today\u2019s office works', async ({ page }) => {
+  await page.goto(`./${unappointedRoute()}`);
+  await page.getByRole('heading', { name: 'Your own material' }).scrollIntoViewIfNeeded();
+  await page.getByRole('button', { name: /Open today/ }).click();
+  await expect(page).toHaveURL(new RegExp(appointedRoute('morning').replace('#/', '').replace(/\//g, '\\/')));
+  await expect(page.getByText('Not yet added — tap to add it')).toHaveCount(4);
+});
+
+test('the Office of Readings offers no editor', async ({ page }) => {
+  await page.goto('./#/readings/read-w1-tue');
+  await expect(page.getByRole('heading', { name: 'Your own material' })).toHaveCount(0);
+  await expect(page.getByText('Not yet added — tap to add it')).toHaveCount(0);
+});

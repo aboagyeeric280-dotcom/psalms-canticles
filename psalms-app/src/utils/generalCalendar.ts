@@ -39,6 +39,9 @@ const P = {
 } as const;
 
 export interface Celebrated {
+  /* The canonical id of the observance, absent on the temporal day of the
+     season (which is keyed by season, week and psalter, not by celebration). */
+  id?: string;
   name: string;
   rank: Rank;
   rankName: string;
@@ -93,38 +96,39 @@ function movable(year: number): Map<string, Celebration> {
   const put = (d: Date, c: Omit<Celebration, 'month' | 'day'>) =>
     m.set(iso(d), { ...c, month: d.getUTCMonth() + 1, day: d.getUTCDate() });
 
-  put(addDays(easter, -46), { name: 'Ash Wednesday', principal: true, rank: 'feast', colour: 'violet', properKey: 'ASH WEDNESDAY' });
-  put(addDays(easter, -7), { name: 'Palm Sunday of the Passion of the Lord', principal: true, rank: 'solemnity', colour: 'red' });
-  put(addDays(easter, -3), { name: 'Holy Thursday', principal: true, rank: 'solemnity', colour: 'white' });
-  put(addDays(easter, -2), { name: 'Good Friday of the Passion of the Lord', principal: true, rank: 'solemnity', colour: 'red', properKey: 'GOOD FRIDAY' });
-  put(addDays(easter, -1), { name: 'Holy Saturday', principal: true, rank: 'solemnity', colour: 'white', properKey: 'HOLY SATURDAY' });
-  put(easter, { name: 'Easter Sunday of the Resurrection of the Lord', principal: true, rank: 'solemnity', colour: 'white', properKey: 'EASTER & OCTAVE' });
+  put(addDays(easter, -46), { id: 'ash-wednesday', name: 'Ash Wednesday', principal: true, rank: 'feast', colour: 'violet', properKey: 'ASH WEDNESDAY' });
+  put(addDays(easter, -7), { id: 'palm-sunday', name: 'Palm Sunday of the Passion of the Lord', principal: true, rank: 'solemnity', colour: 'red' });
+  put(addDays(easter, -3), { id: 'holy-thursday', name: 'Holy Thursday', principal: true, rank: 'solemnity', colour: 'white' });
+  put(addDays(easter, -2), { id: 'good-friday', name: 'Good Friday of the Passion of the Lord', principal: true, rank: 'solemnity', colour: 'red', properKey: 'GOOD FRIDAY' });
+  put(addDays(easter, -1), { id: 'holy-saturday', name: 'Holy Saturday', principal: true, rank: 'solemnity', colour: 'white', properKey: 'HOLY SATURDAY' });
+  put(easter, { id: 'easter-sunday', name: 'Easter Sunday of the Resurrection of the Lord', principal: true, rank: 'solemnity', colour: 'white', properKey: 'EASTER & OCTAVE' });
   for (let i = 1; i <= 6; i++) {
     const names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    put(addDays(easter, i), { name: `${names[i - 1]} within the Octave of Easter`, principal: true, rank: 'solemnity', colour: 'white', properKey: `EASTER ${names[i - 1].toUpperCase()}` });
+    const ids = ['easter-monday', 'easter-tuesday', 'easter-wednesday', 'easter-thursday', 'easter-friday', 'easter-saturday'];
+    put(addDays(easter, i), { id: ids[i - 1], name: `${names[i - 1]} within the Octave of Easter`, principal: true, rank: 'solemnity', colour: 'white', properKey: `EASTER ${names[i - 1].toUpperCase()}` });
   }
-  put(addDays(easter, 7), { name: 'Second Sunday of Easter', principal: true, rank: 'solemnity', colour: 'white', properKey: '2ND SUNDAY OF EASTER' });
-  put(addDays(easter, 39), { name: 'The Ascension of the Lord', principal: true, rank: 'solemnity', colour: 'white', properKey: 'ASCENSION' });
-  put(addDays(easter, 49), { name: 'Pentecost Sunday', principal: true, rank: 'solemnity', colour: 'red', properKey: 'PENTECOST' });
-  put(addDays(easter, 56), { name: 'The Most Holy Trinity', rank: 'solemnity', colour: 'white', properKey: 'TRINITY' });
-  put(addDays(easter, 60), { name: 'The Most Holy Body and Blood of Christ', rank: 'solemnity', colour: 'white', properKey: 'BODY AND BLOOD OF CHRIST' });
-  put(addDays(easter, 68), { name: 'The Most Sacred Heart of Jesus', rank: 'solemnity', colour: 'white', properKey: 'SACRED HEART' });
-  put(addDays(easter, 69), { name: 'The Immaculate Heart of the Blessed Virgin Mary', rank: 'memorial', colour: 'white', common: 'mary' });
+  put(addDays(easter, 7), { id: 'second-sunday-of-easter', name: 'Second Sunday of Easter', principal: true, rank: 'solemnity', colour: 'white', properKey: '2ND SUNDAY OF EASTER' });
+  put(addDays(easter, 39), { id: 'ascension', name: 'The Ascension of the Lord', principal: true, rank: 'solemnity', colour: 'white', properKey: 'ASCENSION' });
+  put(addDays(easter, 49), { id: 'pentecost', name: 'Pentecost Sunday', principal: true, rank: 'solemnity', colour: 'red', properKey: 'PENTECOST' });
+  put(addDays(easter, 56), { id: 'trinity-sunday', name: 'The Most Holy Trinity', rank: 'solemnity', colour: 'white', properKey: 'TRINITY' });
+  put(addDays(easter, 60), { id: 'corpus-christi', name: 'The Most Holy Body and Blood of Christ', rank: 'solemnity', colour: 'white', properKey: 'BODY AND BLOOD OF CHRIST' });
+  put(addDays(easter, 68), { id: 'sacred-heart', name: 'The Most Sacred Heart of Jesus', rank: 'solemnity', colour: 'white', properKey: 'SACRED HEART' });
+  put(addDays(easter, 69), { id: 'immaculate-heart-of-mary', name: 'The Immaculate Heart of the Blessed Virgin Mary', rank: 'memorial', colour: 'white', common: 'mary' });
 
   // Christ the King — the Sunday before Advent.
-  put(addDays(advent, -7), { name: 'Our Lord Jesus Christ, King of the Universe', rank: 'solemnity', colour: 'white', properKey: 'CHRIST THE KING' });
+  put(addDays(advent, -7), { id: 'christ-the-king', name: 'Our Lord Jesus Christ, King of the Universe', rank: 'solemnity', colour: 'white', properKey: 'CHRIST THE KING' });
 
   // The Holy Family — the Sunday in the octave of Christmas, or 30 December
   // when Christmas falls on a Sunday and there is no such Sunday.
   const sundayAfterChristmas = addDays(sundayOnOrBefore(addDays(christmas, 7)), 0);
   const holyFamily = sundayAfterChristmas.getTime() === christmas.getTime()
     ? utc(year, 11, 30) : sundayAfterChristmas;
-  put(holyFamily, { name: 'The Holy Family of Jesus, Mary and Joseph', rank: 'feast', colour: 'white', properKey: 'HOLY FAMILY (SUNDAY)' });
+  put(holyFamily, { id: 'holy-family', name: 'The Holy Family of Jesus, Mary and Joseph', rank: 'feast', colour: 'white', properKey: 'HOLY FAMILY (SUNDAY)' });
 
   // The Baptism of the Lord closes Christmastide.
   const epiphany = utc(year, 0, 6);
-  put(addDays(epiphany, 7 - epiphany.getUTCDay()), { name: 'The Baptism of the Lord', rank: 'feast', colour: 'white', properKey: 'BAPTISM OF THE LORD' });
-  put(epiphany, { name: 'The Epiphany of the Lord', principal: true, rank: 'solemnity', colour: 'white', properKey: 'EPIPHANY' });
+  put(addDays(epiphany, 7 - epiphany.getUTCDay()), { id: 'baptism-of-the-lord', name: 'The Baptism of the Lord', rank: 'feast', colour: 'white', properKey: 'BAPTISM OF THE LORD' });
+  put(epiphany, { id: 'epiphany', name: 'The Epiphany of the Lord', principal: true, rank: 'solemnity', colour: 'white', properKey: 'EPIPHANY' });
 
   return m;
 }
@@ -285,6 +289,7 @@ function toCelebrated(c: Celebration, temporal: boolean): Celebrated {
           : c.rank === 'memorial' ? P.Memorial
             : c.rank === 'optional' ? P.OptionalMemorial : P.Weekday;
   return {
+    id: c.id,
     name: c.name, rank: c.rank, rankName: RANK_NAMES[c.rank],
     colour: c.colour, common: c.common ?? null,
     properKey: c.properKey, temporal, precedence,

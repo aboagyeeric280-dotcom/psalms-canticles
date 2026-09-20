@@ -79,10 +79,11 @@ export default function Sidebar({ route, onGo, onSettings, open, onClose }: Prop
     { label: 'Canticles', icon: <IconMusic />, route: '#/canticles' },
     { label: 'Liturgical Calendar', icon: <IconCalendar />, route: '#/calendar' },
     { label: 'Commons & Feasts', icon: <IconCrest />, route: '#/feasts/common' },
+    { label: 'Your own material', icon: <IconNote />, route: '#/missing' },
   ];
   const lower: Item[] = [
     { label: 'Settings', icon: <IconSettings />, onClick: onSettings },
-    { label: 'Bookmarks', icon: <IconNote />, route: '#/bookmarks' },
+    { label: 'Bookmarks', icon: <IconBook />, route: '#/bookmarks' },
     { label: 'About / Colophon', icon: <IconInfo />, route: '#/about' },
   ];
 

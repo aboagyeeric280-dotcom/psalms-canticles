@@ -2032,3 +2032,439 @@ main:focus:not(:focus-visible) { outline: none; }
 @media (prefers-reduced-motion: reduce) {
   .reader [data-hit='1'] { animation: none; }
 }
+
+/* ───────────────────────── the reader's own material ─────────────────────
+   The four sections a printed psalter leaves out. Kept visually quieter than
+   the book's own text — this is the reader's note beside the page, not the
+   page — but on the same reading surface, in the same measure, so praying
+   straight through does not feel like leaving the book.
+
+   Every state that matters is stated in words as well as shown: the badges
+   carry text, never colour alone.                                          */
+
+.mp-office {
+  margin-top: 3em;
+  padding-top: 1.4em;
+  border-top: 1px solid var(--rule);
+}
+
+.mp-office__title {
+  font-family: var(--display, inherit);
+  font-size: 1.05em;
+  margin: 0 0 .3em;
+}
+
+.mp-hint {
+  font-size: .82em;
+  line-height: 1.5;
+  color: var(--ink-faint);
+  margin: .3em 0;
+}
+
+.mp-section {
+  margin: 1.6em 0;
+  padding: 1em 1.1em;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--bg-raised);
+  color: var(--ink);
+}
+
+.mp-section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .8rem;
+  flex-wrap: wrap;
+}
+
+.mp-section__title {
+  font-size: .78em;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin: 0 0 .5em;
+}
+
+/* The stored wording, exactly as it was typed — including its line breaks. */
+.mp-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: var(--reader-leading, 1.6);
+  margin: .4em 0;
+}
+
+.mp-reference { font-style: italic; margin: 0 0 .4em; }
+.mp-translation { font-size: .8em; color: var(--ink-faint); margin: .5em 0 0; }
+
+.mp-provenance {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .4rem;
+  margin: .8em 0 0;
+}
+
+.mp-badge {
+  display: inline-block;
+  padding: .15em .55em;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  font-size: .72em;
+  letter-spacing: .04em;
+  white-space: nowrap;
+  color: var(--ink-soft);
+  background: var(--bg-sunken);
+}
+
+.mp-badge--key { border-style: dashed; }
+
+.mp-override, .mp-review { margin-top: .6em; }
+
+.mp-review {
+  font-size: .82em;
+  padding: .5em .7em;
+  border-left: 3px solid var(--accent-line);
+  background: var(--bg-sunken);
+  color: var(--ink);
+}
+
+.mp-error {
+  font-size: .85em;
+  padding: .6em .8em;
+  border-left: 3px solid var(--accent-line);
+  background: var(--bg-sunken);
+  color: var(--ink);
+  margin: .8em 0;
+}
+
+.mp-empty {
+  display: flex;
+  flex-direction: column;
+  gap: .25em;
+  width: 100%;
+  min-height: 44px;
+  padding: .9em 1em;
+  text-align: left;
+  border: 1px dashed var(--rule);
+  border-radius: 8px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.mp-empty:hover { border-style: solid; }
+
+/* ------------------------------------------------------------- the editor */
+
+.mp-sheet__context { margin-bottom: 1em; }
+.mp-field { margin: 1.1em 0; }
+
+.mp-field__label {
+  display: block;
+  font-size: .78em;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: .35em;
+}
+
+.mp-input {
+  width: 100%;
+  padding: .6em .7em;
+  font: inherit;
+  color: inherit;
+  background: var(--bg-raised);
+  border: 1px solid var(--rule-strong);
+  border-radius: 6px;
+}
+
+.mp-textarea {
+  min-height: 8em;
+  line-height: 1.5;
+  resize: vertical;
+  white-space: pre-wrap;
+}
+
+/* On a phone the ten-row box pushes Save below the fold. The sheet has always
+   scrolled, so the button was reachable — but the one control a reader is
+   looking for should not have to be hunted for. Give the box what height is
+   left over; it still drags open, and its text is untouched either way. */
+@media (max-height: 52rem) {
+  .mp-textarea { min-height: 5.5em; height: 7em; }
+}
+
+.mp-scope { font-weight: 600; margin: 0 0 .2em; }
+
+.mp-sheet__confirm {
+  margin: 1.2em 0 .6em;
+  padding: .7em .9em;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+
+.mp-sheet__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .6rem;
+  /* Clear of the on-screen keyboard and of any home indicator, so Save and
+     Cancel are never the part of the sheet a phone hides. */
+  margin: 1.2em 0 calc(1.4em + env(safe-area-inset-bottom, 0px));
+}
+
+.mp-confirm {
+  margin-top: 1em;
+  padding: .8em 1em;
+  border: 1px solid var(--accent-line);
+  background: var(--bg-sunken);
+  border-radius: 8px;
+}
+
+/* Every control the reader taps clears the 44px target. */
+.mp-touch { min-height: 44px; }
+.mp-delete { color: var(--accent); }
+
+/* A focus ring that is visible on every surface and in every theme. */
+.mp-touch:focus-visible,
+.mp-empty:focus-visible,
+.mp-input:focus-visible {
+  outline: 2px solid var(--accent-line);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mp-empty, .mp-touch { transition: none; }
+}
+
+@media (max-width: 26rem) {
+  .mp-section { padding: .9em; }
+  .mp-sheet__actions > .btn { flex: 1 1 auto; }
+}
+
+/* ────────────────── Library, Progress and Review ─────────────────────────
+   Working screens for the reader's own material, in the book's own colours
+   but plainer than the reading surfaces: these are for finding and fixing,
+   not for praying from. Every state is in words as well as in shape.      */
+
+.mp-page { padding-bottom: 6rem; }
+
+.mp-tabs {
+  display: flex;
+  gap: .4rem;
+  flex-wrap: wrap;
+  margin: 0 0 1.4rem;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: .6rem;
+}
+
+.mp-tab {
+  min-height: 44px;
+  padding: .5em 1em;
+  font: inherit;
+  color: var(--ink-soft);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.mp-tab[data-current='1'] {
+  color: var(--ink);
+  background: var(--bg-sunken);
+  border-color: var(--rule-strong);
+  font-weight: 600;
+}
+
+.mp-screen__section { margin-top: 2.4rem; }
+.mp-filters { margin-bottom: 1.6rem; }
+
+.mp-filters__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .8rem;
+}
+
+.mp-filters__row .mp-field { flex: 1 1 11rem; margin: .6em 0; }
+
+.mp-list { list-style: none; margin: 0; padding: 0; }
+.mp-list--nested { margin-top: .8rem; }
+
+.mp-card {
+  margin: 1rem 0;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--bg-raised);
+  color: var(--ink);
+}
+
+.mp-card[data-blocked='1'] { border-color: var(--accent-line); }
+
+.mp-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .6rem;
+  flex-wrap: wrap;
+}
+
+.mp-card__title { font-size: 1em; margin: 0; }
+
+.mp-card__sections {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin: .9rem 0 .6rem;
+}
+
+.mp-card__section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .1em;
+  padding: .4em .7em;
+}
+
+.mp-card__state { font-size: .72em; color: var(--ink-faint); }
+.mp-card__section[data-has='1'] { border-color: var(--rule-strong); background: var(--bg-sunken); }
+
+.mp-empty-note {
+  padding: 1.2rem;
+  border: 1px dashed var(--rule-strong);
+  border-radius: 10px;
+  color: var(--ink-soft);
+}
+
+.mp-reasons { list-style: none; margin: .8rem 0; padding: 0; }
+.mp-reasons > li { margin: .5rem 0; }
+
+.mp-conflict { margin: 1rem 0; }
+
+.mp-conflict__pair {
+  display: grid;
+  gap: .8rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 45rem) {
+  .mp-conflict__pair { grid-template-columns: 1fr 1fr; }
+}
+
+.mp-conflict__side {
+  padding: .7rem .8rem;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--bg-sunken);
+}
+
+/* ------------------------------------------------------------- the grid */
+
+.mp-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.2rem;
+  margin: 1.2rem 0;
+  padding: .9rem 1rem;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--bg-raised);
+  list-style: none;
+}
+
+.mp-totals dt, .mp-totals > li > span {
+  font-size: .74em;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.mp-totals dd, .mp-totals > li > strong { margin: .15em 0 0; font-size: 1.05em; }
+.mp-totals > div, .mp-totals > li { display: flex; flex-direction: column; }
+
+.mp-grid {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  table-layout: fixed;
+}
+
+.mp-grid th {
+  font-size: .74em;
+  font-weight: 600;
+  letter-spacing: .06em;
+  color: var(--ink-faint);
+  padding: .3em .2em;
+  text-align: center;
+}
+
+.mp-grid td { padding: 2px; }
+
+.mp-cell {
+  width: 100%;
+  min-height: 44px;
+  padding: .3em .1em;
+  font: inherit;
+  font-size: .8em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  border: 1px solid var(--rule-strong);
+  border-radius: 6px;
+  background: var(--bg-raised);
+  cursor: pointer;
+}
+
+/* Shape and weight carry the state as well as tone, and the cell's
+   accessible name says it in words. */
+.mp-cell[data-state='complete'] {
+  background: var(--accent-wash);
+  border-color: var(--accent-line);
+  border-width: 2px;
+  font-weight: 700;
+}
+
+.mp-cell[data-state='partial'] {
+  border-style: dashed;
+  border-color: var(--accent-line);
+}
+
+.mp-cell[data-state='empty'] { color: var(--ink-faint); }
+
+.mp-cell:focus-visible, .mp-tab:focus-visible {
+  outline: 2px solid var(--accent-line);
+  outline-offset: 2px;
+}
+
+@media (max-width: 30rem) {
+  .mp-grid th:first-child { width: 1.6rem; }
+  .mp-cell { font-size: .72em; padding: .2em 0; }
+  .mp-totals { gap: .9rem; }
+}
+
+/* ── Backup and transfer ─────────────────────────────────────────────────
+   One narrow column of steps. No new colours: the same tokens the rest of
+   the reader's own material uses. */
+.mp-transfer { max-width: 44rem; }
+.mp-transfer__title {
+  font-family: var(--font-display);
+  font-size: 1.02rem; font-weight: 600;
+  margin: 0 0 .3em;
+}
+.mp-rule { border: 0; border-top: 1px solid var(--rule); margin: 1.8em 0; }
+
+/* The input is visually hidden inside it, so the label IS the control. */
+.mp-file { display: inline-flex; align-items: center; cursor: pointer; }
+
+.mp-steps {
+  list-style: decimal;
+  padding-left: 1.4em;
+  margin: 1em 0;
+}
+.mp-steps > li { margin-bottom: 1em; }
+
+.mp-confirm {
+  display: flex; align-items: flex-start; gap: .55em;
+  min-height: 44px;
+  cursor: pointer;
+}
+.mp-confirm input { margin-top: .35em; width: 1.05em; height: 1.05em; flex: none; }
