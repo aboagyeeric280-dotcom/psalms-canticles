@@ -49,6 +49,17 @@ jobs:
       - name: Run the check suites
         run: npm run check:all
 
+      # The unit suites, which cover the reader's own material: the data core,
+      # the calendar adapter, the migration engine and the screens. They are
+      # where the guarantees about a reader's own writing are proved — that
+      # wording is stored byte for byte, that the legacy store is never
+      # written, and that no migration runs without a backup and a yes. Like
+      # the suites above, a failure here must stop the deploy rather than be
+      # discovered after it. `npm test` is `vitest run`: it exits, it does
+      # not watch.
+      - name: Run the unit suites
+        run: npm test
+
       # Stops GitHub from running Jekyll over the build output.
       - name: Add .nojekyll
         run: touch dist/.nojekyll
