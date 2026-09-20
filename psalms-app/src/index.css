@@ -2187,6 +2187,14 @@ main:focus:not(:focus-visible) { outline: none; }
   white-space: pre-wrap;
 }
 
+/* On a phone the ten-row box pushes Save below the fold. The sheet has always
+   scrolled, so the button was reachable — but the one control a reader is
+   looking for should not have to be hunted for. Give the box what height is
+   left over; it still drags open, and its text is untouched either way. */
+@media (max-height: 52rem) {
+  .mp-textarea { min-height: 5.5em; height: 7em; }
+}
+
 .mp-scope { font-weight: 600; margin: 0 0 .2em; }
 
 .mp-sheet__confirm {
@@ -2232,4 +2240,203 @@ main:focus:not(:focus-visible) { outline: none; }
 @media (max-width: 26rem) {
   .mp-section { padding: .9em; }
   .mp-sheet__actions > .btn { flex: 1 1 auto; }
+}
+
+/* ────────────────── Library, Progress and Review ─────────────────────────
+   Working screens for the reader's own material, in the book's own colours
+   but plainer than the reading surfaces: these are for finding and fixing,
+   not for praying from. Every state is in words as well as in shape.      */
+
+.mp-page { padding-bottom: 6rem; }
+
+.mp-tabs {
+  display: flex;
+  gap: .4rem;
+  flex-wrap: wrap;
+  margin: 0 0 1.4rem;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: .6rem;
+}
+
+.mp-tab {
+  min-height: 44px;
+  padding: .5em 1em;
+  font: inherit;
+  color: var(--ink-soft);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.mp-tab[data-current='1'] {
+  color: var(--ink);
+  background: var(--bg-sunken);
+  border-color: var(--rule-strong);
+  font-weight: 600;
+}
+
+.mp-screen__section { margin-top: 2.4rem; }
+.mp-filters { margin-bottom: 1.6rem; }
+
+.mp-filters__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .8rem;
+}
+
+.mp-filters__row .mp-field { flex: 1 1 11rem; margin: .6em 0; }
+
+.mp-list { list-style: none; margin: 0; padding: 0; }
+.mp-list--nested { margin-top: .8rem; }
+
+.mp-card {
+  margin: 1rem 0;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--bg-raised);
+  color: var(--ink);
+}
+
+.mp-card[data-blocked='1'] { border-color: var(--accent-line); }
+
+.mp-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .6rem;
+  flex-wrap: wrap;
+}
+
+.mp-card__title { font-size: 1em; margin: 0; }
+
+.mp-card__sections {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin: .9rem 0 .6rem;
+}
+
+.mp-card__section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .1em;
+  padding: .4em .7em;
+}
+
+.mp-card__state { font-size: .72em; color: var(--ink-faint); }
+.mp-card__section[data-has='1'] { border-color: var(--rule-strong); background: var(--bg-sunken); }
+
+.mp-empty-note {
+  padding: 1.2rem;
+  border: 1px dashed var(--rule-strong);
+  border-radius: 10px;
+  color: var(--ink-soft);
+}
+
+.mp-reasons { list-style: none; margin: .8rem 0; padding: 0; }
+.mp-reasons > li { margin: .5rem 0; }
+
+.mp-conflict { margin: 1rem 0; }
+
+.mp-conflict__pair {
+  display: grid;
+  gap: .8rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 45rem) {
+  .mp-conflict__pair { grid-template-columns: 1fr 1fr; }
+}
+
+.mp-conflict__side {
+  padding: .7rem .8rem;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--bg-sunken);
+}
+
+/* ------------------------------------------------------------- the grid */
+
+.mp-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.2rem;
+  margin: 1.2rem 0;
+  padding: .9rem 1rem;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--bg-raised);
+  list-style: none;
+}
+
+.mp-totals dt, .mp-totals > li > span {
+  font-size: .74em;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.mp-totals dd, .mp-totals > li > strong { margin: .15em 0 0; font-size: 1.05em; }
+.mp-totals > div, .mp-totals > li { display: flex; flex-direction: column; }
+
+.mp-grid {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  table-layout: fixed;
+}
+
+.mp-grid th {
+  font-size: .74em;
+  font-weight: 600;
+  letter-spacing: .06em;
+  color: var(--ink-faint);
+  padding: .3em .2em;
+  text-align: center;
+}
+
+.mp-grid td { padding: 2px; }
+
+.mp-cell {
+  width: 100%;
+  min-height: 44px;
+  padding: .3em .1em;
+  font: inherit;
+  font-size: .8em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  border: 1px solid var(--rule-strong);
+  border-radius: 6px;
+  background: var(--bg-raised);
+  cursor: pointer;
+}
+
+/* Shape and weight carry the state as well as tone, and the cell's
+   accessible name says it in words. */
+.mp-cell[data-state='complete'] {
+  background: var(--accent-wash);
+  border-color: var(--accent-line);
+  border-width: 2px;
+  font-weight: 700;
+}
+
+.mp-cell[data-state='partial'] {
+  border-style: dashed;
+  border-color: var(--accent-line);
+}
+
+.mp-cell[data-state='empty'] { color: var(--ink-faint); }
+
+.mp-cell:focus-visible, .mp-tab:focus-visible {
+  outline: 2px solid var(--accent-line);
+  outline-offset: 2px;
+}
+
+@media (max-width: 30rem) {
+  .mp-grid th:first-child { width: 1.6rem; }
+  .mp-cell { font-size: .72em; padding: .2em 0; }
+  .mp-totals { gap: .9rem; }
 }

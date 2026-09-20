@@ -274,3 +274,67 @@ export function commitImport(preview: ImportPreview, options: ImportOptions): Im
 export function sectionCount(entry: Entry): number {
   return SECTIONS.filter((section) => sectionHasContent(entry, section)).length;
 }
+
+/* ------------------------------------------------- editing a known record */
+
+/**
+ * Write one section of ONE record, named by its own id.
+ *
+ * The Library and the Review screen edit a record the reader has picked out
+ * of a list, and two records can share a key — so finding by key would edit
+ * whichever happened to come first. Everything else about the record is left
+ * exactly as it was: its other sections, its key, its note, and any field a
+ * later version of the app wrote that this one does not understand.
+ *
+ * The review flag is deliberately NOT cleared here. Editing the wording of a
+ * record does not resolve a duplicate key or an unknown celebration, and a
+ * flag that disappears when you touch the record is a flag that hides things.
+ * Acknowledging is its own explicit action below.
+ */
+export function saveSectionOn(
+  entryId: string,
+  section: SectionId,
+  content: Partial<EntryContent>,
+): WriteResult {
+  const existing = state.file.entries.find((entry) => entry.id === entryId);
+  if (!existing) return { ok: false, error: 'That record is no longer here.' };
+
+  const patch: Partial<EntryContent> = {};
+  for (const field of SECTION_META[section].fields) patch[field] = content[field] ?? '';
+
+  const updated: Entry = { ...existing, ...patch, updatedAt: new Date().toISOString() };
+  if (entryIsEmpty(updated)) flagAsContentFree(updated);
+
+  const entries = state.file.entries.map((entry) => (entry.id === entryId ? updated : entry));
+  const result = commit({ ...state.file, entries });
+  return { ok: result.ok, entry: result.ok ? updated : undefined, error: result.error };
+}
+
+/**
+ * Record that the reader has looked at a flagged record.
+ *
+ * The explanation is kept, a timestamp is added, and the flag comes off. It
+ * can be put back. Problems worked out from the data itself — a shared key,
+ * a celebration this calendar does not carry — are untouched by this and go
+ * on being reported until the data changes.
+ */
+export function acknowledgeReview(entryId: string, at = new Date().toISOString()): WriteResult {
+  const existing = state.file.entries.find((entry) => entry.id === entryId);
+  if (!existing) return { ok: false, error: 'That record is no longer here.' };
+  const updated: Entry = { ...existing, reviewedAt: at };
+  delete updated.needsReview;
+  const entries = state.file.entries.map((entry) => (entry.id === entryId ? updated : entry));
+  const result = commit({ ...state.file, entries });
+  return { ok: result.ok, entry: result.ok ? updated : undefined, error: result.error };
+}
+
+/** Put a review flag back, for a reader who acknowledged too quickly. */
+export function unacknowledgeReview(entryId: string): WriteResult {
+  const existing = state.file.entries.find((entry) => entry.id === entryId);
+  if (!existing) return { ok: false, error: 'That record is no longer here.' };
+  const updated: Entry = { ...existing, needsReview: true };
+  delete updated.reviewedAt;
+  const entries = state.file.entries.map((entry) => (entry.id === entryId ? updated : entry));
+  const result = commit({ ...state.file, entries });
+  return { ok: result.ok, entry: result.ok ? updated : undefined, error: result.error };
+}

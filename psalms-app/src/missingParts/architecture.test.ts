@@ -23,6 +23,14 @@ const VITE_CONFIG = import.meta.glob('../../vite.config.ts', {
 
 const isTest = (path: string) => path.endsWith('.test.ts') || path.endsWith('.test.tsx');
 
+/* Everything the reader itself ships, with this feature's own tree removed:
+   what the boundary tests measure the application against. */
+const APP_SOURCES = Object.entries(
+  import.meta.glob('../**/*.{ts,tsx}', {
+    query: '?raw', import: 'default', eager: true,
+  }) as Record<string, string>,
+).filter(([path]) => !path.includes('/missingParts/'));
+
 const SHIPPED = Object.entries(MISSING_PARTS).filter(([path]) => !isTest(path));
 const DATA_CORE = SHIPPED.filter(
   ([path]) => path.startsWith('./data/') || path.startsWith('./state/'),
@@ -134,7 +142,7 @@ describe('test 12: the feature stays headless', () => {
     }
   });
 
-  it('borrows exactly one component from the reader, and only in the interface', () => {
+  it('borrows one component from the reader, and only in the interface', () => {
     /* Sheet is reused deliberately: it already carries the focus trap and the
        scroll lock, and a second dialog system would be a second set of
        accessibility bugs. Nothing else is borrowed. */
@@ -144,7 +152,9 @@ describe('test 12: the feature stays headless', () => {
       expect(path, `${path} may not borrow a component`).toMatch(/^\.\/ui\//);
       expect(specifier, `${path} borrows more than the sheet`).toMatch(/components\/Sheet$/);
     }
-    expect(borrowed.length).toBe(1);
+    // Several sheets are built on it now; Sheet is still the only thing borrowed.
+    expect([...new Set(borrowed.map(([, specifier]) => specifier))]).toHaveLength(1);
+    expect(borrowed.length).toBeGreaterThan(0);
   });
 
   it('keeps the data core and the adapter free of any component', () => {
@@ -206,12 +216,6 @@ describe('the migration engine is not reachable from the application', () => {
      no migration may run on startup: it is driven by a screen that does not
      exist yet, and until it does, none of this can touch a reader's data. */
 
-  const APP_SOURCES = Object.entries(
-    import.meta.glob('../**/*.{ts,tsx}', {
-      query: '?raw', import: 'default', eager: true,
-    }) as Record<string, string>,
-  ).filter(([path]) => !path.includes('/missingParts/'));
-
   it('finds the application source to check', () => {
     expect(APP_SOURCES.length).toBeGreaterThan(20);
   });
@@ -224,25 +228,17 @@ describe('the migration engine is not reachable from the application', () => {
     },
   );
 
-  it('imports the feature only through its interface entry point', () => {
+  it('imports the feature only through its two interface entry points', () => {
     const importers = APP_SOURCES
       .filter(([, source]) => /from\s+'[^']*missingParts/.test(source))
       .flatMap(([path, source]) =>
         [...source.matchAll(/from\s+'([^']*missingParts[^']*)'/g)].map((m) => [path, m[1]]));
     for (const [path, specifier] of importers) {
-      expect(specifier, `${path} reaches past the entry point`)
-        .toMatch(/missingParts\/ui\/OfficeSections$/);
+      expect(specifier, `${path} reaches past the entry points`)
+        .toMatch(/missingParts\/ui\/(OfficeSections|MissingPartsPage)$/);
     }
-    // The office does import it: that is the whole of Phase 4.
+    // The office imports the sections, the shell imports the page: nothing else.
     expect(importers.length).toBeGreaterThan(0);
-  });
-
-  it('adds no route and no navigation entry', () => {
-    const app = APP_SOURCES.find(([p]) => p === '../App.tsx')?.[1] ?? '';
-    const sidebar = APP_SOURCES.find(([p]) => p.endsWith('/Sidebar.tsx'))?.[1] ?? '';
-    // No new hash route was introduced for any missing-parts screen.
-    expect(app).not.toMatch(/head === '(missing|library|progress|review|backup)'/);
-    expect(sidebar).not.toContain('missing');
   });
 
   it('leaves the hour shape and the block pipeline alone', () => {
@@ -316,5 +312,71 @@ describe('the browser checks stay portable', () => {
     const source = CONFIG['../../playwright.config.ts'];
     expect(source).toContain('PLAYWRIGHT_EXECUTABLE_PATH');
     expect(source).toMatch(/executablePath\s*\?\s*\{\s*executablePath\s*\}\s*:\s*\{\}/);
+  });
+});
+
+describe('Phase 5: the three screens keep the same boundaries', () => {
+  const SCREENS = ['./ui/LibraryScreen.tsx', './ui/ProgressScreen.tsx', './ui/ReviewScreen.tsx'];
+
+  it('ships all three screens and their shell', () => {
+    for (const path of [...SCREENS, './ui/MissingPartsPage.tsx', './ui/selectors.ts']) {
+      expect(Object.keys(MISSING_PARTS), path).toContain(path);
+    }
+  });
+
+  it('keeps the derived calculations out of the components', () => {
+    /* Library, Progress and Review render what selectors hand them. None of
+       them re-implements matching, key building or calendar arithmetic. */
+    for (const path of SCREENS) {
+      const source = MISSING_PARTS[path];
+      expect(source, `${path} matches days itself`).not.toContain('entryMatchesDay');
+      expect(source, `${path} builds keyIds itself`).not.toContain('keyId(');
+      expect(source, `${path} resolves offices itself`).not.toContain('resolveOffice');
+    }
+  });
+
+  it('never reaches the migration engine from a screen', () => {
+    for (const [path, source] of SHIPPED) {
+      if (!path.startsWith('./ui/')) continue;
+      expect(source, `${path} imports migration`).not.toMatch(/from\s+'\.\.\/migration/);
+    }
+  });
+
+  it('adds the three routes and one navigation entry, and nothing else', () => {
+    const app = APP_SOURCES.find(([p]) => p === '../App.tsx')?.[1] ?? '';
+    const sidebar = APP_SOURCES.find(([p]) => p.endsWith('/Sidebar.tsx'))?.[1] ?? '';
+    // One branch in the shell, one entry in the drawer, three routes below it.
+    expect(app).toContain("head === 'missing'");
+    expect([...app.matchAll(/head === 'missing'/g)]).toHaveLength(1);
+    expect([...sidebar.matchAll(/'#\/missing/g)]).toHaveLength(1);
+    expect(sidebar).toContain("route: '#/missing'");
+
+    const page = MISSING_PARTS['./ui/MissingPartsPage.tsx'];
+    for (const route of ['#/missing', '#/missing/progress', '#/missing/review']) {
+      expect(page, route).toContain(`'${route}'`);
+    }
+
+    // No Backup, Restore or migration route crept in with them.
+    for (const forbidden of ['backup', 'restore', 'migrate']) {
+      for (const [where, source] of [['App', app], ['the drawer', sidebar], ['the page', page]]) {
+        expect(source, `${where} adds #/missing/${forbidden}`)
+          .not.toContain(`#/missing/${forbidden}`);
+      }
+    }
+  });
+
+  it('leaves the book’s own search and block pipeline alone', () => {
+    const pageBlocks = APP_SOURCES.find(([p]) => p.endsWith('/data/pageBlocks.ts'))?.[1];
+    const search = APP_SOURCES.find(([p]) => p.endsWith('/utils/search.ts'))?.[1];
+    expect(pageBlocks).not.toContain('missingParts');
+    expect(search).not.toContain('missingParts');
+    for (const [path, source] of SHIPPED) {
+      if (!path.startsWith('./ui/')) continue;
+      expect(source, `${path} touches the book index`).not.toMatch(/pageBlocks|utils\/search/);
+    }
+  });
+
+  it('keeps the selectors free of React', () => {
+    expect(MISSING_PARTS['./ui/selectors.ts']).not.toMatch(/from\s+'react/);
   });
 });

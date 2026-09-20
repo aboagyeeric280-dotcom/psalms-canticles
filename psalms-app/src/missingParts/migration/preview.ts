@@ -9,10 +9,11 @@
  * ───────────────────────────────────────────────────────────────────────────
  */
 
-import { liturgicalToday } from '../../utils/generalCalendar';
 import { buildCelebrationIndex, resolveCelebrationId } from '../adapter/celebrationIds';
-import { missingPartsDay } from '../adapter/day';
-import type { MissingPartsDay } from '../data/day';
+import {
+  buildCoverageWindow, isoOf, RESOLUTION_WINDOW_DAYS as WINDOW,
+  type CoverageDay, type DayResolver,
+} from '../adapter/coverage';
 import { entryMatchesDay } from '../data/resolve';
 import { CURRENT_SCHEMA_VERSION, LEGACY_SCHEMA_VERSION, migrateStore } from '../data/migrate';
 import type { MigrationReport } from '../data/migrate';
@@ -29,7 +30,7 @@ import { checksum, DESTINATION_KEY, IN_PROGRESS_KEY, RECEIPT_KEY, SOURCE_KEY,
 import type { MigrationStorage } from './storageIo';
 
 /** How far ahead to look when asking whether a record still applies. */
-export const RESOLUTION_WINDOW_DAYS = 365 * 3;
+export const RESOLUTION_WINDOW_DAYS = WINDOW;
 
 export interface MigrationSource {
   key: string;
@@ -137,43 +138,9 @@ function currentUsage(store: MigrationStorage): number {
   return total;
 }
 
-function isoOf(date: Date): ISODate {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
-
-/** One day of the comparison window, worked out once and reused. */
-export interface CoverageDay {
-  iso: ISODate;
-  day: MissingPartsDay;
-  legacy: ReturnType<typeof legacyDayFor>;
-}
-
-export type DayResolver = (when: Date) => MissingPartsDay;
-
-const defaultDayResolver: DayResolver = (when) => missingPartsDay(liturgicalToday(when));
-
-/**
- * Work the window out ONCE per preview.
- *
- * The liturgical day for a date does not depend on which record is asking, so
- * computing it per record multiplied the calendar work by the number of
- * records — three years of calendar for every psalter entry in the store. The
- * window is now built once and every record reads from it, which makes the
- * cost proportional to the window rather than to window times records.
- */
-export function buildCoverageWindow(
-  from: Date,
-  windowDays: number,
-  resolveDay: DayResolver = defaultDayResolver,
-): CoverageDay[] {
-  const window: CoverageDay[] = [];
-  for (let offset = 0; offset < windowDays; offset += 1) {
-    const when = new Date(from.getFullYear(), from.getMonth(), from.getDate() + offset);
-    window.push({ iso: isoOf(when), day: resolveDay(when), legacy: legacyDayFor(when) });
-  }
-  return window;
-}
+/* Re-exported so the migration engine's own tests and callers keep their
+   import path while the implementation lives in the adapter. */
+export { buildCoverageWindow, type CoverageDay, type DayResolver };
 
 /**
  * Which dates a record applies on under each rule.
@@ -182,13 +149,19 @@ export function buildCoverageWindow(
  * what moved. Compared over a window rather than for ever, because a psalter
  * key recurs indefinitely and three years is enough to show any difference.
  */
-function coverageFor(entry: Entry, window: CoverageDay[]) {
+function coverageFor(
+  entry: Entry,
+  window: CoverageDay[],
+  legacyByIso: Map<ISODate, ReturnType<typeof legacyDayFor>>,
+) {
   const production: ISODate[] = [];
   const legacy: ISODate[] = [];
-  for (const { iso, day, legacy: legacyDay } of window) {
+  for (const { iso, day } of window) {
     if (entryMatchesDay(entry, day, entry.hour)) production.push(iso);
+    if (entry.keyType !== 'psalter') continue;
+    const legacyDay = legacyByIso.get(iso);
     if (
-      entry.keyType === 'psalter'
+      legacyDay
       && entry.season === legacyDay.season
       && entry.psalterWeek === legacyDay.psalterWeek
       && entry.weekday === legacyDay.weekday
@@ -276,6 +249,13 @@ export function previewMigration(
   warnings.push(...report.problems);
 
   const coverageWindow = buildCoverageWindow(now, windowDays, options.dayResolver);
+  /* The legacy rule is the yardstick for saying what moved, and it is
+     migration's business alone — so it is worked out here, once, beside the
+     shared window rather than inside it. */
+  const legacyByIso = new Map(coverageWindow.map(({ iso }) => {
+    const [year, month, dayOfMonth] = iso.split('-').map(Number);
+    return [iso, legacyDayFor(new Date(year, month - 1, dayOfMonth))] as const;
+  }));
 
   // What is already in the destination, so nothing is silently overwritten.
   const existing = readJson<{ entries?: Entry[] }>(store, DESTINATION_KEY)?.entries ?? [];
@@ -318,7 +298,7 @@ export function previewMigration(
       }
     }
 
-    const { production, legacy } = coverageFor(entry, coverageWindow);
+    const { production, legacy } = coverageFor(entry, coverageWindow, legacyByIso);
     const lost = legacy.filter((iso) => !production.includes(iso));
     const gained = production.filter((iso) => !legacy.includes(iso));
     const coverageChanged = entry.keyType === 'psalter' && (lost.length > 0 || gained.length > 0)

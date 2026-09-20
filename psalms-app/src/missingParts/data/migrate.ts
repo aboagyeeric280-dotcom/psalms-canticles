@@ -61,7 +61,7 @@ const KNOWN_ENTRY_FIELDS = new Set([
   'id', 'keyType', 'hour', 'season', 'psalterWeek', 'weekday', 'weekOfSeason',
   'celebrationId', 'celebrationName', 'celebrationRank', 'calendarScope',
   'celebrationMonth', 'celebrationDay', 'date', 'note', 'source', 'origin',
-  'needsReview', 'reviewNote', 'createdAt', 'updatedAt',
+  'needsReview', 'reviewNote', 'reviewedAt', 'createdAt', 'updatedAt',
   'reference', 'readingText', 'translation', 'responsory', 'intercessions',
   'concludingPrayer', 'extra',
 ]);
@@ -383,6 +383,9 @@ export function normaliseEntry(
     ...(noteRaw !== undefined && noteRaw.length > 0 ? { note: noteRaw } : {}),
     ...(record.origin === 'published' || record.origin === 'personal'
       ? { origin: record.origin }
+      : {}),
+    ...(typeof record.reviewedAt === 'string' && record.reviewedAt
+      ? { reviewedAt: record.reviewedAt }
       : {}),
     ...(needsReview ? { needsReview: true } : {}),
     /* Deduplicated: a record carrying a review note from an earlier pass must

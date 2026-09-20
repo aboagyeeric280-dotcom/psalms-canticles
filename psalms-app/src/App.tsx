@@ -28,6 +28,7 @@ import LiturgicalHeader from './components/LiturgicalHeader';
 import Sidebar from './components/Sidebar';
 import { BookmarksPage, CalendarPage, CanticlesPage, PsalterPage } from './components/NavPages';
 import OfficeSections from './missingParts/ui/OfficeSections';
+import MissingPartsPage, { tabFromRoute } from './missingParts/ui/MissingPartsPage';
 
 function useHashRoute() {
   const [route, setRoute] = useState(() => window.location.hash || '#/');
@@ -132,6 +133,11 @@ export default function App() {
   } else if (head === 'bookmarks') {
     title = 'Bookmarks';
     body = <BookmarksPage onGo={go} viewed={viewed} setViewed={setViewed} />;
+  } else if (head === 'missing') {
+    const tab = tabFromRoute(route);
+    title = tab === 'progress' ? 'Progress' : tab === 'review' ? 'Review' : 'Your own material';
+    kicker = 'Your own material';
+    body = <MissingPartsPage tab={tab} onGo={go} />;
   } else if (head === 'office' && arg) {
     const office = OFFICES.find(o => o.id === arg);
     if (!office) body = <NotFound onGo={go} what={arg} />;

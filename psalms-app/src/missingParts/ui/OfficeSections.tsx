@@ -80,7 +80,7 @@ function SectionPanel({
       {resolution.duplicates.length > 0 ? (
         <p className="mp-review" role="note">
           <strong>Needs review:</strong> {resolution.duplicates.length} other record
-          {resolution.duplicates.length === 1 ? '' : 's'} share this exact key. The most recently
+          {resolution.duplicates.length === 1 ? ' shares' : 's share'} this exact key. The most recently
           edited one is shown; nothing has been merged or deleted.
         </p>
       ) : null}

@@ -210,6 +210,11 @@ export interface Entry extends EntryContent {
   needsReview?: boolean;
   /** Plain-language explanation of why review is needed. */
   reviewNote?: string;
+  /* When the reader said they had looked at this. The note above is KEPT, so
+     the diagnostic history survives being acknowledged, and the flag can be
+     put back. Derived problems — a duplicate key, a key that matches no day —
+     are recomputed from the data and cannot be dismissed by a button. */
+  reviewedAt?: string;
   createdAt: string;
   updatedAt: string;
   /** Anything a newer version wrote that this one does not understand. */
