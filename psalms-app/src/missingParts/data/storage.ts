@@ -1,33 +1,16 @@
-/* Local storage access for missing-parts material.
- *
- * ── D8: THE LEGACY KEY IS READ-ONLY ─────────────────────────────────────────
- * `the-missing-parts-entries-v1` belongs to the separate Missing Parts app,
- * which shares this origin. This module READS it and nothing else. There is no
- * code path anywhere in this tree that writes it, clears it or removes it —
- * migration copies, it never moves. A test asserts this, so that the legacy
- * app remains a working rollback indefinitely.
- * ───────────────────────────────────────────────────────────────────────────
- *
- * Preferences are not handled here: the app already has its own in
- * `src/utils/storage.ts` under the `dpc.` prefix, and this feature adds none.
- */
-
 import { migrateStore, CURRENT_SCHEMA_VERSION, type MigrationReport } from './migrate';
-import type { StoreFile } from './types';
+import type { StoreFile, Entry } from './types';
+import publishedEntriesData from './publishedEntries.json';
 
-/** Where the integrated app keeps its material. */
 export const STORAGE_KEY = 'dpc.missing-parts.v1';
-
-/** The separate Missing Parts app's key. READ ONLY — never written. */
 export const LEGACY_STORAGE_KEY = 'the-missing-parts-entries-v1';
-
-/** Prefix for quarantined copies of text that could not be parsed. */
 export const QUARANTINE_PREFIX = 'dpc.missing-parts.unreadable-';
+
+const PUBLISHED_ENTRIES: Entry[] = publishedEntriesData as Entry[];
 
 export interface LoadResult {
   file: StoreFile;
   report: MigrationReport;
-  /** Set when stored data could not be parsed; a copy is kept under this key. */
   quarantineKey?: string;
   available: boolean;
 }
@@ -51,12 +34,6 @@ export function emptyStore(): StoreFile {
   };
 }
 
-/**
- * Read the legacy app's raw stored text.
- *
- * Returns the exact string, unparsed and unaltered, or null. This is the only
- * function in the codebase that touches the legacy key, and it only reads.
- */
 export function readLegacyRaw(): string | null {
   const store = storage();
   if (!store) return null;
@@ -67,44 +44,47 @@ export function readLegacyRaw(): string | null {
   }
 }
 
-/** Keep unreadable text under a timestamped key. Never overwrites the source. */
 function quarantine(store: Storage, raw: string): string | undefined {
   const key = `${QUARANTINE_PREFIX}${new Date().toISOString()}`;
   try {
     store.setItem(key, raw);
     return key;
   } catch {
-    // Out of space. The source key is still untouched, which is what matters.
     return undefined;
   }
+}
+
+/** Merge published entries, skipping any whose id already exists in personal entries. */
+function mergePublished(personal: Entry[]): Entry[] {
+  const personalIds = new Set(personal.map((e) => e.id));
+  const newPublished = PUBLISHED_ENTRIES.filter((e) => !personalIds.has(e.id));
+  return [...personal, ...newPublished];
 }
 
 export function loadStore(): LoadResult {
   const store = storage();
   if (!store) {
-    return { file: emptyStore(), report: migrateStore(null).report, available: false };
+    const file = { ...emptyStore(), entries: [...PUBLISHED_ENTRIES] };
+    return { file, report: migrateStore(null).report, available: false };
   }
 
   const raw = store.getItem(STORAGE_KEY);
   if (raw === null) {
-    return { file: emptyStore(), report: migrateStore(null).report, available: true };
+    const file = { ...emptyStore(), entries: [...PUBLISHED_ENTRIES] };
+    return { file, report: migrateStore(null).report, available: true };
   }
 
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch {
-    // Keep the unreadable text. Nothing is ever discarded silently.
     const quarantineKey = quarantine(store, raw);
-    return {
-      file: emptyStore(),
-      report: migrateStore(null).report,
-      quarantineKey,
-      available: true,
-    };
+    const file = { ...emptyStore(), entries: [...PUBLISHED_ENTRIES] };
+    return { file, report: migrateStore(null).report, quarantineKey, available: true };
   }
 
   const { file, report } = migrateStore(parsed);
+  file.entries = mergePublished(file.entries);
   return { file, report, available: true };
 }
 
@@ -112,7 +92,12 @@ export function saveStore(file: StoreFile): { ok: boolean; error?: string } {
   const store = storage();
   if (!store) return { ok: false, error: 'This browser is not allowing the app to save data.' };
   try {
-    store.setItem(STORAGE_KEY, JSON.stringify(file));
+    // Never persist published entries to localStorage — they come from the bundle.
+    const personal: StoreFile = {
+      ...file,
+      entries: file.entries.filter((e) => e.origin !== 'published'),
+    };
+    store.setItem(STORAGE_KEY, JSON.stringify(personal));
     return { ok: true };
   } catch (error) {
     const message =
@@ -123,7 +108,6 @@ export function saveStore(file: StoreFile): { ok: boolean; error?: string } {
   }
 }
 
-/** Approximate the space this feature is using, in UTF-16 code units. */
 export function approximateStoredSize(): number {
   const store = storage();
   if (!store) return 0;
