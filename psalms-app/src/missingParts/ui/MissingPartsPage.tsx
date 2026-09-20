@@ -4,25 +4,29 @@ import { dismissSaveError } from '../state/store';
 import LibraryScreen from './LibraryScreen';
 import ProgressScreen from './ProgressScreen';
 import ReviewScreen from './ReviewScreen';
+import BackupScreen from './BackupScreen';
 
-export type MissingPartsTab = 'library' | 'progress' | 'review';
+export type MissingPartsTab = 'library' | 'progress' | 'review' | 'backup';
 
 export const MISSING_PARTS_ROUTES: Record<MissingPartsTab, string> = {
   library: '#/missing',
   progress: '#/missing/progress',
   review: '#/missing/review',
+  backup: '#/missing/backup',
 };
 
 const TABS: { id: MissingPartsTab; label: string }[] = [
   { id: 'library', label: 'Library' },
   { id: 'progress', label: 'Progress' },
   { id: 'review', label: 'Review' },
+  { id: 'backup', label: 'Backup' },
 ];
 
 /** Which of the three a hash route names. Anything else is the Library. */
 export function tabFromRoute(route: string): MissingPartsTab {
   if (route.startsWith(MISSING_PARTS_ROUTES.progress)) return 'progress';
   if (route.startsWith(MISSING_PARTS_ROUTES.review)) return 'review';
+  if (route.startsWith(MISSING_PARTS_ROUTES.backup)) return 'backup';
   return 'library';
 }
 
@@ -80,6 +84,7 @@ export default function MissingPartsPage({ tab, onGo }: Props) {
       {tab === 'library' ? <LibraryScreen /> : null}
       {tab === 'progress' ? <ProgressScreen /> : null}
       {tab === 'review' ? <ReviewScreen /> : null}
+      {tab === 'backup' ? <BackupScreen onGo={onGo} /> : null}
     </div>
   );
 }

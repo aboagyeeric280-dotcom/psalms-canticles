@@ -2440,3 +2440,31 @@ main:focus:not(:focus-visible) { outline: none; }
   .mp-cell { font-size: .72em; padding: .2em 0; }
   .mp-totals { gap: .9rem; }
 }
+
+/* ── Backup and transfer ─────────────────────────────────────────────────
+   One narrow column of steps. No new colours: the same tokens the rest of
+   the reader's own material uses. */
+.mp-transfer { max-width: 44rem; }
+.mp-transfer__title {
+  font-family: var(--font-display);
+  font-size: 1.02rem; font-weight: 600;
+  margin: 0 0 .3em;
+}
+.mp-rule { border: 0; border-top: 1px solid var(--rule); margin: 1.8em 0; }
+
+/* The input is visually hidden inside it, so the label IS the control. */
+.mp-file { display: inline-flex; align-items: center; cursor: pointer; }
+
+.mp-steps {
+  list-style: decimal;
+  padding-left: 1.4em;
+  margin: 1em 0;
+}
+.mp-steps > li { margin-bottom: 1em; }
+
+.mp-confirm {
+  display: flex; align-items: flex-start; gap: .55em;
+  min-height: 44px;
+  cursor: pointer;
+}
+.mp-confirm input { margin-top: .35em; width: 1.05em; height: 1.05em; flex: none; }

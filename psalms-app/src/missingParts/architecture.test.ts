@@ -259,10 +259,29 @@ describe('the migration engine is not reachable from the application', () => {
     }
   });
 
-  it('never reads the legacy key from the interface', () => {
+  it('never names the legacy key from the interface', () => {
     for (const [path, source] of SHIPPED) {
       if (!path.startsWith('./ui/')) continue;
       expect(source, `${path} names the legacy store`).not.toContain('the-missing-parts-entries-v1');
+    }
+  });
+
+  it('reaches the engine through exactly one door in the interface', () => {
+    /* The backup screen has to drive the migration engine — that is what it
+       is for. It does so through ONE module, so the boundary stays a thing
+       you can point at: every other part of the interface is still unable to
+       reach the engine at all, and a second door would have to be added here
+       deliberately rather than drifting in. */
+    const doors = SHIPPED
+      .filter(([path]) => path.startsWith('./ui/'))
+      .filter(([, source]) => /from\s+'\.\.\/migration/.test(source))
+      .map(([path]) => path);
+    expect(doors).toEqual(['./ui/transfer.ts']);
+  });
+
+  it('keeps the screens themselves off the engine', () => {
+    for (const [path, source] of SHIPPED) {
+      if (!path.endsWith('Screen.tsx') && !path.endsWith('Page.tsx')) continue;
       expect(source, `${path} imports migration`).not.toMatch(/from\s+'\.\.\/migration/);
     }
   });
@@ -335,14 +354,14 @@ describe('Phase 5: the three screens keep the same boundaries', () => {
     }
   });
 
-  it('never reaches the migration engine from a screen', () => {
-    for (const [path, source] of SHIPPED) {
-      if (!path.startsWith('./ui/')) continue;
-      expect(source, `${path} imports migration`).not.toMatch(/from\s+'\.\.\/migration/);
+  it('never reaches the migration engine from any of the three screens', () => {
+    for (const path of SCREENS) {
+      expect(MISSING_PARTS[path], `${path} imports migration`)
+        .not.toMatch(/from\s+'\.\.\/migration/);
     }
   });
 
-  it('adds the three routes and one navigation entry, and nothing else', () => {
+  it('adds its routes and one navigation entry, and nothing else', () => {
     const app = APP_SOURCES.find(([p]) => p === '../App.tsx')?.[1] ?? '';
     const sidebar = APP_SOURCES.find(([p]) => p.endsWith('/Sidebar.tsx'))?.[1] ?? '';
     // One branch in the shell, one entry in the drawer, three routes below it.
@@ -352,12 +371,13 @@ describe('Phase 5: the three screens keep the same boundaries', () => {
     expect(sidebar).toContain("route: '#/missing'");
 
     const page = MISSING_PARTS['./ui/MissingPartsPage.tsx'];
-    for (const route of ['#/missing', '#/missing/progress', '#/missing/review']) {
+    for (const route of ['#/missing', '#/missing/progress', '#/missing/review',
+                         '#/missing/backup']) {
       expect(page, route).toContain(`'${route}'`);
     }
 
-    // No Backup, Restore or migration route crept in with them.
-    for (const forbidden of ['backup', 'restore', 'migrate']) {
+    // Restore and migration are still not routes, and never gained one.
+    for (const forbidden of ['restore', 'migrate', 'rollback', 'publish']) {
       for (const [where, source] of [['App', app], ['the drawer', sidebar], ['the page', page]]) {
         expect(source, `${where} adds #/missing/${forbidden}`)
           .not.toContain(`#/missing/${forbidden}`);
