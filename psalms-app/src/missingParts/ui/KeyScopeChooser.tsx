@@ -105,13 +105,17 @@ export default function KeyScopeChooser({ day, value, onChange, locked, onUnlock
   const ids = useId();
   const available = keyTypesFor(day);
 
+  /* The scope is stated once, in the "Saving as" summary above the Save
+     button. Repeating it here only invited the two to disagree. */
   if (locked) {
     return (
       <div className="mp-field">
-        <p className="mp-field__label">This applies to</p>
-        <p className="mp-scope">{scopeSummary(value)}</p>
-        <p className="mp-hint">{explainScope(value)}</p>
-        <button type="button" className="btn btn--ghost mp-touch" onClick={onUnlock}>
+        <button
+          type="button"
+          className="btn btn--ghost mp-touch"
+          onClick={onUnlock}
+          aria-label={`Change what this applies to. Currently ${scopeSummary(value)}.`}
+        >
           Change what this applies to
         </button>
       </div>
@@ -131,7 +135,6 @@ export default function KeyScopeChooser({ day, value, onChange, locked, onUnlock
           <option key={keyType} value={keyType}>{KEY_TYPE_LABELS[keyType]}</option>
         ))}
       </select>
-      <p className="mp-hint" id={`${ids}-explain`}>{explainScope(value)}</p>
 
       {value.keyType === 'celebration' && day.celebrations.length > 1 ? (
         <>

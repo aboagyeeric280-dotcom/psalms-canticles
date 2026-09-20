@@ -191,8 +191,9 @@ describe('6: editing works on the record that produced what is shown', () => {
 
     const sheet = within(screen.getByRole('dialog'));
     expect(sheet.queryByLabelText('This applies to')).not.toBeInTheDocument();
-    expect(sheet.getAllByText('Psalter IV · Tuesday').length).toBeGreaterThan(0);
-    await user.click(screen.getByRole('button', { name: 'Change what this applies to' }));
+    // Stated exactly once, in the "Saving as" summary — not twice over.
+    expect(sheet.getAllByText('Psalter IV · Tuesday')).toHaveLength(1);
+    await user.click(screen.getByRole('button', { name: /^Change what this applies to/ }));
     expect(within(screen.getByRole('dialog')).getByLabelText('This applies to')).toBeInTheDocument();
   });
 });
@@ -221,7 +222,7 @@ describe('7: partial overrides still resolve independently', () => {
     await addSection('responsory', 'Psalter responsory.');
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: /^Edit the responsory/i }));
-    await user.click(screen.getByRole('button', { name: 'Change what this applies to' }));
+    await user.click(screen.getByRole('button', { name: /^Change what this applies to/ }));
     await user.selectOptions(within(screen.getByRole('dialog')).getByLabelText('This applies to'), 'date');
     const box = within(screen.getByRole('dialog')).getByLabelText('Responsory');
     await user.clear(box);
@@ -344,5 +345,78 @@ describe('the live region and the status line are for screen readers only', () =
     await addSection('responsory', 'Mine.');
     const visible = screen.getAllByText(/Responsory saved for Morning Prayer/);
     for (const node of visible) expect(node).toHaveClass('sr');
+  });
+});
+
+describe('the scope is stated once, and names itself to a screen reader', () => {
+  it('does not repeat the scope when editing', async () => {
+    renderOffice();
+    await addSection('responsory', 'Mine.');
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: /^Edit the responsory/i }));
+    const sheet = within(screen.getByRole('dialog'));
+    expect(sheet.getAllByText(/^Psalter IV · Tuesday$/)).toHaveLength(1);
+    expect(sheet.getAllByText(/repeat every four weeks/i)).toHaveLength(1);
+  });
+
+  it('names the current scope on the control that changes it', async () => {
+    renderOffice();
+    await addSection('responsory', 'Mine.');
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: /^Edit the responsory/i }));
+    expect(screen.getByRole('button', { name: /^Change what this applies to/ }))
+      .toHaveAccessibleName('Change what this applies to. Currently Psalter IV · Tuesday.');
+  });
+
+  it('states it once when adding, too', async () => {
+    renderOffice();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: /^Add the responsory/i }));
+    const sheet = within(screen.getByRole('dialog'));
+    expect(sheet.getAllByText(/repeat every four weeks/i)).toHaveLength(1);
+  });
+});
+
+describe('R35: material is shown only where the calendar puts it', () => {
+  it('shows nothing when the page is a psalter office opened for reference', () => {
+    render(
+      <OfficeSections
+        when={TUESDAY} hour="morning" dayTitle={TITLE} boundToCalendar={false}
+      />,
+    );
+    expect(screen.queryByText('Not yet added — tap to add it')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Add the/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/belong to a date in the calendar/)).toBeInTheDocument();
+  });
+
+  it('does not show stored material on such a page either', async () => {
+    const { unmount } = renderOffice();
+    await addSection('responsory', 'Today’s responsory.');
+    unmount();
+
+    render(
+      <OfficeSections
+        when={TUESDAY} hour="morning" dayTitle={TITLE} boundToCalendar={false}
+      />,
+    );
+    expect(screen.queryByText('Today’s responsory.')).not.toBeInTheDocument();
+  });
+
+  it('offers a way back to the office the calendar does appoint', async () => {
+    const onOpenToday = vi.fn();
+    render(
+      <OfficeSections
+        when={TUESDAY} hour="morning" dayTitle={TITLE}
+        boundToCalendar={false} onOpenToday={onOpenToday}
+      />,
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: /Open today/ }));
+    expect(onOpenToday).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows everything as usual when the page is today’s office', async () => {
+    renderOffice({ boundToCalendar: true });
+    expect(screen.getAllByText('Not yet added — tap to add it')).toHaveLength(4);
   });
 });

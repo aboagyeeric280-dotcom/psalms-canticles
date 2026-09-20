@@ -299,3 +299,22 @@ describe('the migration engine is not reachable from the application', () => {
     }
   });
 });
+
+describe('the browser checks stay portable', () => {
+  const CONFIG = import.meta.glob('../../playwright.config.ts', {
+    query: '?raw', import: 'default', eager: true,
+  }) as Record<string, string>;
+
+  it('hard-codes no machine-specific browser path', () => {
+    const source = CONFIG['../../playwright.config.ts'];
+    expect(source, 'expected to find playwright.config.ts').toBeTypeOf('string');
+    expect(source).not.toMatch(/\/opt\/[^'"\s]*chrom/i);
+    expect(source).not.toMatch(/chromium-\d+/);
+  });
+
+  it('takes the browser from the environment, with Playwright’s own as default', () => {
+    const source = CONFIG['../../playwright.config.ts'];
+    expect(source).toContain('PLAYWRIGHT_EXECUTABLE_PATH');
+    expect(source).toMatch(/executablePath\s*\?\s*\{\s*executablePath\s*\}\s*:\s*\{\}/);
+  });
+});

@@ -1,5 +1,5 @@
 import { useId, useMemo, useState } from 'react';
-import { SECTIONS, SECTION_META, type Entry, type Hour, type SectionId } from '../data/types';
+import { HOUR_META, SECTIONS, SECTION_META, type Entry, type Hour, type SectionId } from '../data/types';
 import type { MissingPartsDay } from '../data/day';
 import { resolveOffice, type SectionResolution } from '../data/resolve';
 import { missingPartsDayFor } from '../adapter/day';
@@ -102,6 +102,14 @@ export interface OfficeSectionsProps {
   dayTitle: string;
   /** Optional memorials the reader has elected, keyed by local date. */
   observed?: Record<string, string>;
+  /* False when this page is a psalter office the reader opened directly
+     rather than the one the calendar appoints for today at this hour.
+     Personal material is keyed to the liturgical day, so showing today's
+     beside another week's psalms would attach it to an office nobody is
+     praying. Defaults to true. */
+  boundToCalendar?: boolean;
+  /** Takes the reader to the office the calendar does appoint. */
+  onOpenToday?: () => void;
 }
 
 /**
@@ -111,7 +119,9 @@ export interface OfficeSectionsProps {
  * reader's own material on their own device, and it must never become part
  * of the published text or of the search index built from it.
  */
-export default function OfficeSections({ when, hour, dayTitle, observed }: OfficeSectionsProps) {
+export default function OfficeSections({
+  when, hour, dayTitle, observed, boundToCalendar = true, onOpenToday,
+}: OfficeSectionsProps) {
   const { file, saveError, storageAvailable } = useAppState();
   const announcement = useAnnouncement();
   const [editing, setEditing] = useState<SectionId | null>(null);
@@ -128,6 +138,27 @@ export default function OfficeSections({ when, hour, dayTitle, observed }: Offic
 
   const editingEntry: Entry | undefined = editing ? office.sections[editing].entry : undefined;
   const missing = SECTIONS.filter((section) => !office.sections[section].present);
+
+  /* Browsing the psalter rather than praying today's office. Say so plainly
+     and show nothing: material shown here would belong to a different day
+     from the psalms above it. */
+  if (!boundToCalendar) {
+    return (
+      <section className="mp-office" aria-labelledby={headingId}>
+        <h3 className="mp-office__title" id={headingId}>Your own material</h3>
+        <p className="mp-hint">
+          These are the psalms the book prints for this week and day. Your own short reading,
+          responsory, intercessions and concluding prayer belong to a date in the calendar, so
+          they are not shown beside a page you have opened for reference.
+        </p>
+        {onOpenToday ? (
+          <button type="button" className="btn mp-touch" onClick={onOpenToday}>
+            Open today’s {HOUR_META[hour].description}
+          </button>
+        ) : null}
+      </section>
+    );
+  }
 
   return (
     <section className="mp-office" aria-labelledby={headingId}>

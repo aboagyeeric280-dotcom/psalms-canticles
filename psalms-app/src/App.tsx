@@ -22,7 +22,8 @@ import { DAY_KEYS, HOUR_NAMES, ROMAN, liturgicalDay } from './utils/liturgicalCa
 import { loadObserved, pushRecent, saveObserved, usePrefs } from './utils/storage';
 import { scrollToTop } from './utils/scroll';
 import { latinHour } from './utils/hours';
-import { liturgicalToday } from './utils/generalCalendar';
+import { keepsFirstVespers, liturgicalToday } from './utils/generalCalendar';
+import { officeForDay } from './utils/officeForDay';
 import LiturgicalHeader from './components/LiturgicalHeader';
 import Sidebar from './components/Sidebar';
 import { BookmarksPage, CalendarPage, CanticlesPage, PsalterPage } from './components/NavPages';
@@ -138,6 +139,14 @@ export default function App() {
       const shape = HOUR_SHAPE[office.hour];
       title = `${office.dayName} — ${HOUR_NAMES[office.hour]}`;
       kicker = `Week ${ROMAN[office.week]}`;
+      /* Is this the office the calendar appoints for today at this hour, or a
+         psalter page opened for reference? The reader's own material is keyed
+         to a liturgical day, so it belongs only on the former. Asking the
+         router that appoints the office is the only reliable way to tell: on
+         a feast, today's Morning Prayer is Sunday I, not today's weekday. */
+      const appointed = officeForDay(today, { firstVespers: keepsFirstVespers(viewed) });
+      const boundToCalendar =
+        appointed.hours.find(h => h.hour === office.hour)?.route === route;
       body = (
         <OfficeReader
           {...pageProps}
@@ -163,6 +172,11 @@ export default function App() {
               hour={office.hour}
               dayTitle={today.title}
               observed={observed}
+              boundToCalendar={boundToCalendar}
+              onOpenToday={() => {
+                const to = appointed.hours.find(h => h.hour === office.hour)?.route;
+                if (to) go(to);
+              }}
             />
             {/* The parts of the Hour our book does not print. A link only —
                 nothing is fetched from Universalis, here or anywhere. */}

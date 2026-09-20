@@ -1,11 +1,30 @@
 import { expect, test, type Page } from '@playwright/test';
+import { keepsFirstVespers, liturgicalToday } from '../src/utils/generalCalendar';
+import { officeForDay } from '../src/utils/officeForDay';
 
-/* The office the reader lands on is whatever today is, so the tests navigate
-   by hash to a known psalter office instead: Week I, Tuesday, Morning. */
-const OFFICE = '#/office/w1-tue-morning';
+/* Personal material belongs to a liturgical day, so it only appears on the
+   office the calendar appoints for today — which psalter page that is depends
+   on the date, and on a feast is Sunday I rather than today's weekday. The
+   tests ask the same router the app asks rather than hard-coding a page. */
+function appointedRoute(hour: 'morning' | 'evening'): string {
+  const now = new Date();
+  const plan = officeForDay(liturgicalToday(now), { firstVespers: keepsFirstVespers(now) });
+  const route = plan.hours.find((h) => h.hour === hour)?.route;
+  if (!route?.startsWith('#/office/')) {
+    throw new Error(`today's ${hour} is not an office page: ${route}`);
+  }
+  return route;
+}
+
+/** A psalter page that is deliberately NOT the one appointed for today. */
+function unappointedRoute(): string {
+  const appointed = appointedRoute('morning');
+  const candidates = ['#/office/w1-tue-morning', '#/office/w2-wed-morning', '#/office/w3-thu-morning'];
+  return candidates.find((route) => route !== appointed)!;
+}
 
 async function openOffice(page: Page) {
-  await page.goto(`./${OFFICE}`);
+  await page.goto(`./${appointedRoute('morning')}`);
   await page.getByRole('heading', { name: 'Your own material' }).scrollIntoViewIfNeeded();
 }
 
@@ -71,31 +90,24 @@ test('20: saved material survives the app being closed and reopened', async ({ p
   await expect(page.getByText('For the Church: Lord, hear us.')).toBeVisible();
 });
 
-/* KNOWN DEFECT, reported and awaiting approval to fix.
- *
- * The service worker matches the cache without `ignoreVary`, so a host that
- * sends `Vary: Origin` makes every precached asset invisible to the module
- * script requests the page makes — which are CORS-mode and therefore carry an
- * Origin header the service worker's own precache fetch did not.
- *
- * Confirmed by serving the same dist twice: with `Vary: Origin` (vite
- * preview) the offline reload fails four asset requests and renders nothing;
- * without it, the same build reopens offline perfectly.
- *
- * The fix is one option bag on two cache.match calls in public/sw.js, which
- * Phase 4 is not permitted to touch. Marked as an expected failure so that it
- * is reported the moment it starts passing rather than quietly forgotten.
+/* The service worker matches the cache with `ignoreVary`, so a host that
+ * answers `Vary: Origin` cannot hide the precached assets from the page's
+ * module-script requests. Without that, everything precaches correctly and
+ * the app still fails to start with no network — which is the one thing an
+ * offline-first breviary must not do.
  */
-test('offline reopening is broken by Vary: Origin (known service-worker defect)', async ({ page, context }) => {
-  test.fail();
+test('20b: the app reopens with no network at all, personal material intact', async ({ page, context }) => {
   await openOffice(page);
   await addSection(page, /^Add the responsory/i, 'Responsory', 'Offline responsory.');
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null, null, { timeout: 20_000 });
 
   await context.setOffline(true);
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Your own material' })).toBeVisible({ timeout: 8_000 });
+
+  await expect(page.getByRole('heading', { name: 'Your own material' })).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText('Offline responsory.')).toBeVisible();
+  // The book itself came back too, not just the shell.
+  await expect(page.locator('.reader')).toBeVisible();
   await context.setOffline(false);
 });
 
@@ -149,6 +161,27 @@ test('17: the published weekly prayers page is unchanged', async ({ page }) => {
   await expect(page.locator('body')).toContainText('collects for the weeks of the year');
   // No claim is made about which of them belongs to today.
   await expect(page.locator('body')).not.toContainText(/this week.s prayer/i);
+});
+
+test('R35: a psalter page opened for reference shows no personal material', async ({ page }) => {
+  // Today's own office carries the sections.
+  await openOffice(page);
+  await expect(page.getByText('Not yet added — tap to add it')).toHaveCount(4);
+
+  // A psalter page opened directly does not, and says why.
+  await page.goto(`./${unappointedRoute()}`);
+  await page.getByRole('heading', { name: 'Your own material' }).scrollIntoViewIfNeeded();
+  await expect(page.getByText(/belong to a date in the calendar/)).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Add the/i })).toHaveCount(0);
+  await expect(page.getByText('Not yet added — tap to add it')).toHaveCount(0);
+});
+
+test('R35: the way back to today\u2019s office works', async ({ page }) => {
+  await page.goto(`./${unappointedRoute()}`);
+  await page.getByRole('heading', { name: 'Your own material' }).scrollIntoViewIfNeeded();
+  await page.getByRole('button', { name: /Open today/ }).click();
+  await expect(page).toHaveURL(new RegExp(appointedRoute('morning').replace('#/', '').replace(/\//g, '\\/')));
+  await expect(page.getByText('Not yet added — tap to add it')).toHaveCount(4);
 });
 
 test('the Office of Readings offers no editor', async ({ page }) => {

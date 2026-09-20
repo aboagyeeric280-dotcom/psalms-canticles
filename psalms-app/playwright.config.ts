@@ -6,10 +6,15 @@
  */
 import { defineConfig, devices } from '@playwright/test';
 
-/* This machine ships Chromium already; the pinned Playwright expects a
-   different build number, so point it at the one that is here rather than
-   downloading another copy. */
-const CHROMIUM = process.env.CHROMIUM_PATH ?? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+/* Where to find Chromium.
+ *
+ * Left to Playwright by default, which is what a contributor with a normal
+ * `npx playwright install` wants. Machines that already ship a browser — CI
+ * images, and this project's own sandbox — set PLAYWRIGHT_EXECUTABLE_PATH to
+ * it instead of downloading a second copy. No path is hard-coded here: one
+ * machine's layout is nobody else's. */
+const executablePath = process.env.PLAYWRIGHT_EXECUTABLE_PATH || undefined;
+const launchOptions = executablePath ? { executablePath } : {};
 
 export default defineConfig({
   testDir: './e2e',
@@ -31,7 +36,7 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         viewport: { width: 375, height: 812 },
-        launchOptions: { executablePath: CHROMIUM },
+        launchOptions,
       },
     },
     {
@@ -39,7 +44,7 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         viewport: { width: 1280, height: 900 },
-        launchOptions: { executablePath: CHROMIUM },
+        launchOptions,
       },
     },
   ],

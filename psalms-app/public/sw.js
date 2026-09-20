@@ -62,17 +62,30 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Everything else is content-hashed or a static asset: cache first.
+  /* Everything else is content-hashed or a static asset: cache first.
+
+     `ignoreVary` matters more than it looks. A host may answer with
+     `Vary: Origin` — GitHub Pages and Vite's own preview both can — and the
+     precache fetches these files from inside the worker, where no Origin
+     header is sent. The page then asks for the same files as module scripts,
+     which are CORS-mode requests and DO carry one. Without this the two
+     never match, every asset misses the cache, and the app that was
+     carefully precached fails to start with no network at all.
+
+     Scoped to the asset path deliberately: the navigation above matches a
+     fixed string rather than the incoming request, so Vary never enters
+     into it. */
+  const MATCH = { ignoreSearch: false, ignoreVary: true };
   event.respondWith((async () => {
     const cache = await caches.open(CACHE);
-    const cached = await cache.match(request, { ignoreSearch: false });
+    const cached = await cache.match(request, MATCH);
     if (cached) return cached;
     try {
       const res = await fetch(request);
       if (res.ok && res.type === 'basic') cache.put(request, res.clone());
       return res;
     } catch (err) {
-      const fallback = await cache.match(request, { ignoreSearch: true });
+      const fallback = await cache.match(request, { ignoreSearch: true, ignoreVary: true });
       if (fallback) return fallback;
       throw err;
     }
