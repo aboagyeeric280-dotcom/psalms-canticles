@@ -49,6 +49,13 @@ describe('the data core is calendar-independent', () => {
     },
   );
 
+  it('keeps the data core clear of the adapter and the interface', () => {
+    for (const [path, source] of DATA_CORE) {
+      expect(source, `${path} imports the adapter`).not.toMatch(/from\s+'\.\.\/adapter/);
+      expect(source, `${path} imports the interface`).not.toMatch(/from\s+'\.\.\/ui/);
+    }
+  });
+
   it('reaches the rest of the app only for shared types', () => {
     const outward = DATA_CORE.flatMap(([, source]) =>
       [...source.matchAll(/from\s+'(\.\.\/\.\.\/[^']+)'/g)].map((match) => match[1]),
@@ -101,11 +108,15 @@ describe('test 12: the feature stays headless', () => {
      does nothing else; everything else is plain TypeScript. */
   const REACT_BINDING = './state/useAppState.ts';
 
-  it('lets only the documented binding import React', () => {
+  it('keeps React out of everything but the binding and the interface', () => {
     const importers = SHIPPED
       .filter(([, source]) => /from\s+'react(-dom)?(\/[^']*)?'/.test(source))
       .map(([path]) => path);
-    expect(importers).toEqual([REACT_BINDING]);
+    for (const path of importers) {
+      const allowed = path === REACT_BINDING || path.startsWith('./ui/');
+      expect(allowed, `${path} may not import React`).toBe(true);
+    }
+    expect(importers).toContain(REACT_BINDING);
   });
 
   it('keeps that binding to the one thing it is for', () => {
@@ -114,18 +125,40 @@ describe('test 12: the feature stays headless', () => {
     expect(source.split('\n').filter((l) => l.startsWith('export '))).toHaveLength(1);
   });
 
-  it('imports no router, and no component from the reader', () => {
+  it('imports no router anywhere', () => {
     for (const [path, source] of SHIPPED) {
       const imports = [...source.matchAll(/from\s+'([^']+)'/g)].map((m) => m[1]);
       for (const specifier of imports) {
         expect(specifier, `${path} imports a router`).not.toMatch(/router|history|wouter/i);
-        expect(specifier, `${path} imports a component`).not.toMatch(/\/components\//);
       }
     }
   });
 
-  it('has no JSX anywhere in the feature', () => {
-    expect(Object.keys(MISSING_PARTS).filter((p) => p.endsWith('.tsx'))).toEqual([]);
+  it('borrows exactly one component from the reader, and only in the interface', () => {
+    /* Sheet is reused deliberately: it already carries the focus trap and the
+       scroll lock, and a second dialog system would be a second set of
+       accessibility bugs. Nothing else is borrowed. */
+    const borrowed = SHIPPED.flatMap(([path, source]) =>
+      [...source.matchAll(/from\s+'([^']*\/components\/[^']+)'/g)].map((m) => [path, m[1]]));
+    for (const [path, specifier] of borrowed) {
+      expect(path, `${path} may not borrow a component`).toMatch(/^\.\/ui\//);
+      expect(specifier, `${path} borrows more than the sheet`).toMatch(/components\/Sheet$/);
+    }
+    expect(borrowed.length).toBe(1);
+  });
+
+  it('keeps the data core and the adapter free of any component', () => {
+    for (const [path, source] of SHIPPED) {
+      if (path.startsWith('./ui/')) continue;
+      expect(source, `${path} imports a component`).not.toMatch(/\/components\//);
+    }
+  });
+
+  it('has JSX only in the interface', () => {
+    for (const path of Object.keys(MISSING_PARTS)) {
+      if (!path.endsWith('.tsx')) continue;
+      expect(path, `${path} is JSX outside the interface`).toMatch(/^\.\/ui\//);
+    }
   });
 
   it('keeps the calendar adapter itself free of React', () => {
@@ -184,27 +217,58 @@ describe('the migration engine is not reachable from the application', () => {
   });
 
   it.each(APP_SOURCES.map(([path, source]) => [path, source]))(
-    '%s does not import the missing-parts feature',
+    '%s does not import the migration engine',
     (_path, source) => {
-      expect(source).not.toMatch(/from\s+'[^']*missingParts/);
-      expect(source).not.toMatch(/import\s*\(\s*'[^']*missingParts/);
+      expect(source).not.toMatch(/from\s+'[^']*missingParts\/migration/);
+      expect(source).not.toMatch(/import\s*\(\s*'[^']*missingParts\/migration/);
     },
   );
 
-  it('leaves the entry point with no reference to it', () => {
-    for (const name of ['../main.tsx', '../App.tsx']) {
-      const source = APP_SOURCES.find(([path]) => path === name)?.[1];
-      expect(source, `expected to find ${name}`).toBeTypeOf('string');
-      expect(source).not.toContain('missingParts');
-      expect(source).not.toContain('migrat');
+  it('imports the feature only through its interface entry point', () => {
+    const importers = APP_SOURCES
+      .filter(([, source]) => /from\s+'[^']*missingParts/.test(source))
+      .flatMap(([path, source]) =>
+        [...source.matchAll(/from\s+'([^']*missingParts[^']*)'/g)].map((m) => [path, m[1]]));
+    for (const [path, specifier] of importers) {
+      expect(specifier, `${path} reaches past the entry point`)
+        .toMatch(/missingParts\/ui\/OfficeSections$/);
+    }
+    // The office does import it: that is the whole of Phase 4.
+    expect(importers.length).toBeGreaterThan(0);
+  });
+
+  it('adds no route and no navigation entry', () => {
+    const app = APP_SOURCES.find(([p]) => p === '../App.tsx')?.[1] ?? '';
+    const sidebar = APP_SOURCES.find(([p]) => p.endsWith('/Sidebar.tsx'))?.[1] ?? '';
+    // No new hash route was introduced for any missing-parts screen.
+    expect(app).not.toMatch(/head === '(missing|library|progress|review|backup)'/);
+    expect(sidebar).not.toContain('missing');
+  });
+
+  it('leaves the hour shape and the block pipeline alone', () => {
+    const ordinary = APP_SOURCES.find(([p]) => p.endsWith('/data/ordinary.ts'))?.[1];
+    const pageBlocks = APP_SOURCES.find(([p]) => p.endsWith('/data/pageBlocks.ts'))?.[1];
+    const search = APP_SOURCES.find(([p]) => p.endsWith('/utils/search.ts'))?.[1];
+    expect(ordinary).not.toContain('missingParts');
+    expect(pageBlocks).not.toContain('missingParts');
+    expect(search).not.toContain('missingParts');
+  });
+
+  it('keeps the reader\u2019s own material out of the search index', () => {
+    /* The index is built from pageBlocks; personal text is rendered beside
+       the blocks, never inside them, so it cannot reach the index. */
+    for (const [path, source] of SHIPPED) {
+      if (!path.startsWith('./ui/')) continue;
+      expect(source, `${path} touches the block pipeline`).not.toMatch(/pageBlocks|utils\/search/);
     }
   });
 
-  it('adds no route, no navigation entry and no change to the hour shape', () => {
-    const sidebar = APP_SOURCES.find(([p]) => p.endsWith('/Sidebar.tsx'))?.[1];
-    const ordinary = APP_SOURCES.find(([p]) => p.endsWith('/data/ordinary.ts'))?.[1];
-    expect(sidebar).not.toContain('missing');
-    expect(ordinary).not.toContain('missingParts');
+  it('never reads the legacy key from the interface', () => {
+    for (const [path, source] of SHIPPED) {
+      if (!path.startsWith('./ui/')) continue;
+      expect(source, `${path} names the legacy store`).not.toContain('the-missing-parts-entries-v1');
+      expect(source, `${path} imports migration`).not.toMatch(/from\s+'\.\.\/migration/);
+    }
   });
 
   it('runs no migration on import: the engine only exports functions', () => {

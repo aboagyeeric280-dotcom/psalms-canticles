@@ -68,9 +68,19 @@ function emit(next: Partial<AppState>): void {
   for (const listener of listeners) listener();
 }
 
-function commit(file: StoreFile): void {
+/* Writing through reports whether it worked, so nothing above this can
+   announce a save that did not happen. */
+function commit(file: StoreFile): { ok: boolean; error?: string } {
   const result = saveStore(file);
   emit({ file, saveError: result.ok ? undefined : result.error });
+  return result;
+}
+
+/** What a write attempt did. `ok` is false when storage refused it. */
+export interface WriteResult {
+  ok: boolean;
+  entry?: Entry;
+  error?: string;
 }
 
 export function subscribe(listener: () => void): () => void {
@@ -154,7 +164,7 @@ export function saveSection(
   key: EntryKeyInput,
   section: SectionId,
   content: Partial<EntryContent>,
-): Entry | undefined {
+): WriteResult {
   const now = new Date().toISOString();
   const fields = SECTION_META[section].fields;
   const patch: Partial<EntryContent> = {};
@@ -166,14 +176,13 @@ export function saveSection(
     const updated: Entry = { ...existing, ...patch, updatedAt: now };
     delete updated.needsReview;
     delete updated.reviewNote;
-    /* Clearing the last section of a record removes it. That is a deliberate
-       action by the reader, not a silent discard. */
-    const nowEmpty = entryIsEmpty(updated);
-    const entries = nowEmpty
-      ? state.file.entries.filter((entry) => entry.id !== existing.id)
-      : state.file.entries.map((entry) => (entry.id === existing.id ? updated : entry));
-    commit({ ...state.file, entries });
-    return nowEmpty ? undefined : updated;
+    /* A record emptied of every section is KEPT and flagged, not dropped. It
+       may still carry the reader's note and fields a later version wrote, and
+       the data contract is that nothing is discarded without being said. */
+    if (entryIsEmpty(updated)) flagAsContentFree(updated);
+    const entries = state.file.entries.map((entry) => (entry.id === existing.id ? updated : entry));
+    const result = commit({ ...state.file, entries });
+    return { ok: result.ok, entry: result.ok ? updated : undefined, error: result.error };
   }
 
   const created: Entry = {
@@ -188,22 +197,40 @@ export function saveSection(
     updatedAt: now,
   } as Entry;
 
-  if (entryIsEmpty(created)) return undefined;
-  commit({ ...state.file, entries: [...state.file.entries, created] });
-  return created;
+  if (entryIsEmpty(created)) {
+    return { ok: false, error: 'There was nothing in the box, so nothing was saved.' };
+  }
+  const result = commit({ ...state.file, entries: [...state.file.entries, created] });
+  return { ok: result.ok, entry: result.ok ? created : undefined, error: result.error };
 }
 
-/** Remove one section from a record; the record goes if nothing is left. */
-export function clearSection(entryId: string, section: SectionId): void {
+/** The note left on a record whose every section has been cleared. */
+export const CONTENT_FREE_NOTE =
+  'Every section of this record has been cleared. It has been kept rather than discarded, in case its key or note is still wanted.';
+
+function flagAsContentFree(entry: Entry): void {
+  entry.needsReview = true;
+  entry.reviewNote = CONTENT_FREE_NOTE;
+}
+
+/**
+ * Clear one section of a record, leaving its other sections alone.
+ *
+ * A record left with nothing in any section is kept and flagged. Dropping it
+ * would discard the reader's note, its key and anything a later version of
+ * the app had written into it, without ever saying so.
+ */
+export function clearSection(entryId: string, section: SectionId): WriteResult {
   const existing = state.file.entries.find((entry) => entry.id === entryId);
-  if (!existing) return;
+  if (!existing) return { ok: false, error: 'That record is no longer here.' };
   const patch: Partial<EntryContent> = {};
   for (const field of SECTION_META[section].fields) patch[field] = '';
   const updated: Entry = { ...existing, ...patch, updatedAt: new Date().toISOString() };
-  const entries = entryIsEmpty(updated)
-    ? state.file.entries.filter((entry) => entry.id !== entryId)
-    : state.file.entries.map((entry) => (entry.id === entryId ? updated : entry));
-  commit({ ...state.file, entries });
+  if (entryIsEmpty(updated)) flagAsContentFree(updated);
+  else { delete updated.needsReview; delete updated.reviewNote; }
+  const entries = state.file.entries.map((entry) => (entry.id === entryId ? updated : entry));
+  const result = commit({ ...state.file, entries });
+  return { ok: result.ok, entry: result.ok ? updated : undefined, error: result.error };
 }
 
 /** Full-record save, used by the entry editor in the Library. */

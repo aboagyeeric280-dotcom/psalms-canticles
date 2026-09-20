@@ -98,3 +98,30 @@ export function missingPartsDayForHour(
 ): MissingPartsDay {
   return missingPartsDay(liturgicalToday(liturgicalDateForHour(when, hour), options));
 }
+
+/**
+ * The day and hour the reader is praying, with their own elections applied.
+ *
+ * The reader elects an optional memorial per calendar date, and the reader
+ * interface keeps those elections keyed by local date. First Vespers belongs
+ * to the day that is coming, so it must take THAT day's election, not
+ * tonight's — which is why this resolves the date first and looks the
+ * election up afterwards.
+ *
+ * Kept here rather than in the interface so that nothing above the adapter
+ * needs to reach into the production calendar.
+ */
+export function missingPartsDayFor(
+  when: Date,
+  hour: Hour,
+  observed: Record<string, string> = {},
+): MissingPartsDay {
+  const target = liturgicalDateForHour(when, hour);
+  return missingPartsDay(liturgicalToday(target, { observe: observed[localDateKey(target)] ?? null }));
+}
+
+/** A local calendar date as `YYYY-MM-DD`, matching the reader's own keying. */
+export function localDateKey(when: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${when.getFullYear()}-${pad(when.getMonth() + 1)}-${pad(when.getDate())}`;
+}

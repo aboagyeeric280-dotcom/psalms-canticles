@@ -15,6 +15,7 @@ export default defineConfig({
     include: ['src/**/*.test.{ts,tsx}'],
     // Imports are explicit in every test file; no ambient globals.
     globals: false,
+    setupFiles: ['./src/missingParts/ui/testSetup.ts'],
     restoreMocks: true,
   },
 });

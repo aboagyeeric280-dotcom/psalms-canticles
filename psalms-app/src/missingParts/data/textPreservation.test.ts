@@ -169,9 +169,9 @@ describe('the live editing path stores exactly what it is given', () => {
         translation: AWKWARD.translation,
       },
     );
-    expect(saved?.reference).toBe(AWKWARD.reference);
-    expect(saved?.readingText).toBe(AWKWARD.readingText);
-    expect(saved?.translation).toBe(AWKWARD.translation);
+    expect(saved.entry?.reference).toBe(AWKWARD.reference);
+    expect(saved.entry?.readingText).toBe(AWKWARD.readingText);
+    expect(saved.entry?.translation).toBe(AWKWARD.translation);
   });
 
   it('keeps that exact text after a reload from storage', () => {
@@ -209,6 +209,6 @@ describe('the CRLF limitation is stated honestly', () => {
       'responsory',
       { responsory: textarea.value },
     );
-    expect(saved?.responsory).toBe(textarea.value);
+    expect(saved.entry?.responsory).toBe(textarea.value);
   });
 });

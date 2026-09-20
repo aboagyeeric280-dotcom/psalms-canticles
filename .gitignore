@@ -5,6 +5,11 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# browser-test output and verification screenshots
+psalms-app/test-results/
+psalms-app/playwright-report/
+psalms-app/screenshots/
+
 # generated / local-only
 tools/render/out/
 .playwright-mcp/

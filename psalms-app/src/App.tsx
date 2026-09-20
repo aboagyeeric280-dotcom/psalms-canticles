@@ -26,6 +26,7 @@ import { liturgicalToday } from './utils/generalCalendar';
 import LiturgicalHeader from './components/LiturgicalHeader';
 import Sidebar from './components/Sidebar';
 import { BookmarksPage, CalendarPage, CanticlesPage, PsalterPage } from './components/NavPages';
+import OfficeSections from './missingParts/ui/OfficeSections';
 
 function useHashRoute() {
   const [route, setRoute] = useState(() => window.location.hash || '#/');
@@ -154,6 +155,15 @@ export default function App() {
           </>}
           outro={<>
             <HourShapeCard shape={shape} onGo={go} where="after" />
+            {/* The four sections the book leaves out, kept on this device.
+                Rendered here rather than among the book's own blocks: it is
+                the reader's material, and it never joins the search index. */}
+            <OfficeSections
+              when={viewed}
+              hour={office.hour}
+              dayTitle={today.title}
+              observed={observed}
+            />
             {/* The parts of the Hour our book does not print. A link only —
                 nothing is fetched from Universalis, here or anywhere. */}
             {prefs.universalis && <UniversalisLink hour={office.hour} prayedOn={viewed} />}
@@ -195,7 +205,15 @@ export default function App() {
     // A search may name the evening whose psalms it found the words in.
     const day = DAY_KEYS.includes(arg as DayKey) ? (arg as DayKey) : undefined;
     body = (
-      <ComplineView {...pageProps} day={day} latin={latinHour('compline')} resumeKey={route} />
+      <ComplineView
+        {...pageProps}
+        day={day}
+        latin={latinHour('compline')}
+        resumeKey={route}
+        sections={
+          <OfficeSections when={viewed} hour="night" dayTitle={today.title} observed={observed} />
+        }
+      />
     );
   } else if (head === 'canticle' && (arg === 'zechariah' || arg === 'mary')) {
     title = arg === 'zechariah' ? 'Canticle of Zechariah' : 'Canticle of Mary';

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import OfficeReader from './OfficeReader';
 import type { FocusMark } from './Blocks';
 import { complineBlocks, complinePrefix } from '../data/pageBlocks';
@@ -21,13 +21,15 @@ interface Props {
   /** The evening to open on. Compline follows the clock unless a route — a
       search result, say — names another day. */
   day?: DayKey;
+  /** The reader's own missing-parts material for Night Prayer. */
+  sections?: ReactNode;
 }
 
 /** Compline is the one hour the book prints whole, so the app assembles it
     end to end for the evening in hand. */
 export default function ComplineView({
   season, prefs, onGo, onProgress, onSize, onCycleTheme, latin, resumeKey, focus,
-  day: asked,
+  day: asked, sections,
 }: Props) {
   const today = useMemo(() => complineDayKey(), []);
   const [day, setDay] = useState<DayKey>(asked ?? today);
@@ -73,7 +75,8 @@ export default function ComplineView({
           </p>
         </div>
       }
-      outro={
+      outro={<>
+        {sections}
         <section className="blk" style={{ marginTop: '3em' }}>
           <h3 className="h2">Anthem to Our Lady</h3>
           <p className="rubric">
@@ -81,7 +84,7 @@ export default function ComplineView({
           </p>
           <button className="btn" onClick={() => onGo('#/dominican')}>Open the Compline Supplements</button>
         </section>
-      }
+      </>}
     />
   );
 }

@@ -2032,3 +2032,204 @@ main:focus:not(:focus-visible) { outline: none; }
 @media (prefers-reduced-motion: reduce) {
   .reader [data-hit='1'] { animation: none; }
 }
+
+/* ───────────────────────── the reader's own material ─────────────────────
+   The four sections a printed psalter leaves out. Kept visually quieter than
+   the book's own text — this is the reader's note beside the page, not the
+   page — but on the same reading surface, in the same measure, so praying
+   straight through does not feel like leaving the book.
+
+   Every state that matters is stated in words as well as shown: the badges
+   carry text, never colour alone.                                          */
+
+.mp-office {
+  margin-top: 3em;
+  padding-top: 1.4em;
+  border-top: 1px solid var(--rule);
+}
+
+.mp-office__title {
+  font-family: var(--display, inherit);
+  font-size: 1.05em;
+  margin: 0 0 .3em;
+}
+
+.mp-hint {
+  font-size: .82em;
+  line-height: 1.5;
+  color: var(--ink-faint);
+  margin: .3em 0;
+}
+
+.mp-section {
+  margin: 1.6em 0;
+  padding: 1em 1.1em;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--bg-raised);
+  color: var(--ink);
+}
+
+.mp-section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .8rem;
+  flex-wrap: wrap;
+}
+
+.mp-section__title {
+  font-size: .78em;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin: 0 0 .5em;
+}
+
+/* The stored wording, exactly as it was typed — including its line breaks. */
+.mp-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: var(--reader-leading, 1.6);
+  margin: .4em 0;
+}
+
+.mp-reference { font-style: italic; margin: 0 0 .4em; }
+.mp-translation { font-size: .8em; color: var(--ink-faint); margin: .5em 0 0; }
+
+.mp-provenance {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .4rem;
+  margin: .8em 0 0;
+}
+
+.mp-badge {
+  display: inline-block;
+  padding: .15em .55em;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  font-size: .72em;
+  letter-spacing: .04em;
+  white-space: nowrap;
+  color: var(--ink-soft);
+  background: var(--bg-sunken);
+}
+
+.mp-badge--key { border-style: dashed; }
+
+.mp-override, .mp-review { margin-top: .6em; }
+
+.mp-review {
+  font-size: .82em;
+  padding: .5em .7em;
+  border-left: 3px solid var(--accent-line);
+  background: var(--bg-sunken);
+  color: var(--ink);
+}
+
+.mp-error {
+  font-size: .85em;
+  padding: .6em .8em;
+  border-left: 3px solid var(--accent-line);
+  background: var(--bg-sunken);
+  color: var(--ink);
+  margin: .8em 0;
+}
+
+.mp-empty {
+  display: flex;
+  flex-direction: column;
+  gap: .25em;
+  width: 100%;
+  min-height: 44px;
+  padding: .9em 1em;
+  text-align: left;
+  border: 1px dashed var(--rule);
+  border-radius: 8px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.mp-empty:hover { border-style: solid; }
+
+/* ------------------------------------------------------------- the editor */
+
+.mp-sheet__context { margin-bottom: 1em; }
+.mp-field { margin: 1.1em 0; }
+
+.mp-field__label {
+  display: block;
+  font-size: .78em;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: .35em;
+}
+
+.mp-input {
+  width: 100%;
+  padding: .6em .7em;
+  font: inherit;
+  color: inherit;
+  background: var(--bg-raised);
+  border: 1px solid var(--rule-strong);
+  border-radius: 6px;
+}
+
+.mp-textarea {
+  min-height: 8em;
+  line-height: 1.5;
+  resize: vertical;
+  white-space: pre-wrap;
+}
+
+.mp-scope { font-weight: 600; margin: 0 0 .2em; }
+
+.mp-sheet__confirm {
+  margin: 1.2em 0 .6em;
+  padding: .7em .9em;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+
+.mp-sheet__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .6rem;
+  /* Clear of the on-screen keyboard and of any home indicator, so Save and
+     Cancel are never the part of the sheet a phone hides. */
+  margin: 1.2em 0 calc(1.4em + env(safe-area-inset-bottom, 0px));
+}
+
+.mp-confirm {
+  margin-top: 1em;
+  padding: .8em 1em;
+  border: 1px solid var(--accent-line);
+  background: var(--bg-sunken);
+  border-radius: 8px;
+}
+
+/* Every control the reader taps clears the 44px target. */
+.mp-touch { min-height: 44px; }
+.mp-delete { color: var(--accent); }
+
+/* A focus ring that is visible on every surface and in every theme. */
+.mp-touch:focus-visible,
+.mp-empty:focus-visible,
+.mp-input:focus-visible {
+  outline: 2px solid var(--accent-line);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mp-empty, .mp-touch { transition: none; }
+}
+
+@media (max-width: 26rem) {
+  .mp-section { padding: .9em; }
+  .mp-sheet__actions > .btn { flex: 1 1 auto; }
+}
