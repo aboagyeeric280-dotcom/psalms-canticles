@@ -266,6 +266,35 @@ three prayer-book styles across Light, Sepia and Dark and both finishes.
 
 ---
 
+**F. Bundled missing-parts material (added 22 Nov 2026).**
+`psalms-app/src/missingParts/data/publishedEntries.json` now ships readings,
+responsories, intercessions and prayers for 22–23 September, each flagged
+`needsReview` with the note that it was scaffolded from Universalis. That sits
+against the decision in §1. It is the owner's call; until the entries are
+rewritten or removed they are deployed publicly with the app.
+
+### Changes on 22 November 2026
+
+- **Fixed: a reader's changes to bundled entries were lost.** Editing,
+  reviewing or deleting one of them reverted on the next load. Changed entries
+  are now saved as the reader's own; deleted ones are remembered in
+  `meta.dismissedPublished`. Covered by `publishedEntries.test.ts`.
+- **Phone dashboard reordered.** The hour to pray ("Now") comes first, then the
+  hours of the day, then the feast. A proper hour no longer shows an empty
+  "Today's psalms" card. The footer's repeat of "How to use this book" is gone,
+  and the home header says "Today's Office", as the sidebar does.
+- **Fixed: the rank badge on the dashboard feast card was invisible** (`--lit`
+  was only defined inside `.litbar`; `.litscope` now carries it).
+- **Fixed: the A−/A+ size hint flashed on every reader page** in development
+  and sat over the dock on phones. It now shows only on a real change, under
+  the header.
+- **Lists wrap instead of crushing their label** — the calendar's "What is
+  coming" was one word a line on phones.
+- **"Recently prayed" lists only texts you pray from**, not the calendar,
+  psalter chooser or other app pages.
+- `check:sw` explains itself when there is no build yet. The unreferenced
+  `vellum-412-light.png` was removed from the repository root.
+
 ## 5. Next steps, in order
 
 1. **Confirm the Universalis calendar slug** (issue B) — one URL in a browser,

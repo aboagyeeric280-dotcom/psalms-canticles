@@ -54,7 +54,7 @@ export default function OfficeReader({
   const [toc, setToc] = useState(false);
   const [current, setCurrent] = useState<string | null>(null);
   const [sizeHint, setSizeHint] = useState(false);
-  const firstSize = useRef(true);
+  const lastSize = useRef(prefs.size);
   const bodyRef = useRef<HTMLDivElement>(null);
   const items = useMemo(() => outline(blocks, idPrefix), [blocks, idPrefix]);
 
@@ -118,8 +118,11 @@ export default function OfficeReader({
   }, [focus]);
 
   // A− / A+ act on the text in place; this is the only feedback they need.
+  /* Keyed to an actual change of size, not to the first run of the effect:
+     React's development double-run would otherwise flash it on every page. */
   useEffect(() => {
-    if (firstSize.current) { firstSize.current = false; return; }
+    if (lastSize.current === prefs.size) return;
+    lastSize.current = prefs.size;
     setSizeHint(true);
     const t = window.setTimeout(() => setSizeHint(false), 1100);
     return () => window.clearTimeout(t);

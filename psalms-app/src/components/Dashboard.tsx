@@ -78,8 +78,9 @@ export default function Dashboard({ onGo, viewed, setViewed, today, onElect }: P
       <div className="dash">
         {/* ------------------------------------------------- the main column */}
         <div className="dash__main">
+          <div className="dash__block" data-slot="hours">
           <div className="sect__head">
-            <h2 className="dash__h">The hours today</h2>
+            <h2 className="dash__h">{isToday ? 'The hours today' : 'The hours of the day'}</h2>
             <button className="linkbtn" onClick={() => onGo('#/psalter')}>Open the psalter</button>
           </div>
 
@@ -109,14 +110,16 @@ export default function Dashboard({ onGo, viewed, setViewed, today, onElect }: P
               })}
             </div>
           </section>
+          </div>
 
-          <div className="sect__head" style={{ marginTop: '1.6rem' }}>
-            <h2 className="dash__h">Today’s feast</h2>
+          <div className="dash__block" data-slot="feast">
+          <div className="sect__head">
+            <h2 className="dash__h">{isToday ? 'Today’s feast' : 'The day'}</h2>
             <button className="linkbtn" onClick={() => onGo('#/calendar')}>Liturgical calendar</button>
           </div>
 
           <div className="dash__pair">
-            <section className="card">
+            <section className="card litscope" data-colour={today.colour}>
               <p className="card__kicker">{formatDate(lit.date)}</p>
               <h3 className="card__title">{today.title}</h3>
               <p className="litbar__meta" style={{ marginTop: '.55rem' }}>
@@ -153,12 +156,14 @@ export default function Dashboard({ onGo, viewed, setViewed, today, onElect }: P
               ) : <p className="card__muted">Ferial weekdays for the next several weeks.</p>}
             </section>
           </div>
+          </div>
         </div>
 
         {/* ------------------------------------------------- the side column */}
         <div className="dash__side">
+          <div className="dash__block" data-slot="now">
           <div className="sect__head">
-            <h2 className="dash__h">Now</h2>
+            <h2 className="dash__h">{isToday ? 'Now' : 'At this hour'}</h2>
             <button className="linkbtn" onClick={() => onGo('#/compline')}>Compline</button>
           </div>
 
@@ -176,25 +181,33 @@ export default function Dashboard({ onGo, viewed, setViewed, today, onElect }: P
               </button>
             )}
           </section>
+          </div>
 
-          <div className="sect__head" style={{ marginTop: '1.6rem' }}>
-            <h2 className="dash__h">Today’s psalms</h2>
+          {/* A proper hour's psalms are printed with the feast, not the
+              psalter, so there is nothing to preview; the section is left
+              out rather than filled with an apology. */}
+          {psalms.length > 0 && (
+          <div className="dash__block" data-slot="psalms">
+          <div className="sect__head">
+            <h2 className="dash__h">Psalms of this hour</h2>
             <button className="linkbtn" onClick={() => onGo(currentRoute)}>Open the hour</button>
           </div>
 
           <section className="card card--rows">
-            {psalms.length ? psalms.map((p, i) => (
+            {psalms.map((p, i) => (
               <button key={i} className="psalmrow" onClick={() => onGo(currentRoute)}>
                 <span className="psalmrow__ref">{p.ref}</span>
                 {p.title && <span className="psalmrow__title">{p.title}</span>}
                 <span className="psalmrow__incipit">{p.incipit}</span>
               </button>
-            )) : <p className="card__muted">This hour takes its psalms from the proper.</p>}
+            ))}
           </section>
+          </div>
+          )}
 
           {recent.length > 0 && (
-            <>
-              <div className="sect__head" style={{ marginTop: '1.6rem' }}>
+            <div className="dash__block" data-slot="recent">
+              <div className="sect__head">
                 <h2 className="dash__h">Recently prayed</h2>
                 <button className="linkbtn" onClick={() => onGo('#/bookmarks')}>All bookmarks</button>
               </div>
@@ -208,7 +221,7 @@ export default function Dashboard({ onGo, viewed, setViewed, today, onElect }: P
                   </button>
                 ))}
               </section>
-            </>
+            </div>
           )}
         </div>
       </div>

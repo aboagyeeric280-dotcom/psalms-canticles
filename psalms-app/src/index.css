@@ -343,14 +343,17 @@ a { color: inherit; }
   overflow: hidden; background: var(--bg-raised); box-shadow: var(--shadow);
 }
 .list__item {
-  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  /* The meta wraps under the label when the two will not share a line, rather
+     than squeezing the label to a word a line on a phone. */
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: .2rem 1rem;
   width: 100%; padding: .8rem .9rem; text-align: left;
   border-bottom: 1px solid var(--rule);
 }
 .list__item:last-child { border-bottom: 0; }
 .list__item:hover { background: var(--bg-sunken); }
-.list__label { font-family: var(--font-serif); font-size: 1.02rem; }
-.list__meta { font-size: .75rem; color: var(--ink-faint); flex: none; }
+.list__label { font-family: var(--font-serif); font-size: 1.02rem; flex: 1 1 11rem; min-width: 0; }
+.list__meta { font-size: .75rem; color: var(--ink-faint); flex: 0 1 auto; }
 
 /* ---------------------------------------------------------------- reader */
 .reader {
@@ -778,6 +781,7 @@ a { color: inherit; }
 /* ------------------------------------------------- the liturgical day */
 /* Each celebration carries its own colour, which is a fact about the day
    rather than a theme choice, so it is set per element and not on :root. */
+.litscope { --lit: var(--accent); }
 .litbar {
   --lit: var(--accent);
   display: flex;
@@ -793,12 +797,12 @@ a { color: inherit; }
   box-shadow: var(--shadow);
   overflow: hidden;
 }
-.litbar[data-colour='white'] { --lit: var(--lit-white); }
-.litbar[data-colour='red'] { --lit: var(--lit-red); }
-.litbar[data-colour='green'] { --lit: var(--lit-green); }
-.litbar[data-colour='violet'] { --lit: var(--lit-violet); }
-.litbar[data-colour='rose'] { --lit: var(--lit-rose); }
-.litbar[data-colour='black'] { --lit: var(--lit-black); }
+.litbar[data-colour='white'], .litscope[data-colour='white'] { --lit: var(--lit-white); }
+.litbar[data-colour='red'], .litscope[data-colour='red'] { --lit: var(--lit-red); }
+.litbar[data-colour='green'], .litscope[data-colour='green'] { --lit: var(--lit-green); }
+.litbar[data-colour='violet'], .litscope[data-colour='violet'] { --lit: var(--lit-violet); }
+.litbar[data-colour='rose'], .litscope[data-colour='rose'] { --lit: var(--lit-rose); }
+.litbar[data-colour='black'], .litscope[data-colour='black'] { --lit: var(--lit-black); }
 
 /* "Colour of the day" in the settings sheet puts data-lit on the root, which
    is what carries the vesture out of the header and into the reader. It goes
@@ -1063,7 +1067,8 @@ a { color: inherit; }
 
 /* Live feedback for A− / A+, over the text rather than in a dialog. */
 .sizehint {
-  position: fixed; left: 50%; bottom: calc(54px + env(safe-area-inset-bottom) + .6rem);
+  /* Under the header, clear of the dock — which is two rows deep on a phone. */
+  position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 4.75rem);
   transform: translateX(-50%);
   z-index: 46; pointer-events: none;
   background: var(--ink); color: var(--bg);
@@ -1757,7 +1762,19 @@ a { color: inherit; }
   padding: 1.1rem clamp(.85rem, 3vw, 1.6rem) 3rem;
 }
 .dash { display: grid; gap: 1.4rem; }
-.dash__main, .dash__side { min-width: 0; }
+.dash__main, .dash__side { min-width: 0; display: grid; gap: 1.6rem; align-content: start; }
+.dash__block { min-width: 0; }
+/* One column on a phone or a narrow tablet: the hour to pray comes first,
+   then the shape of the day, then everything that is for reference. The two
+   desktop columns dissolve so their blocks can be put in that order. */
+@media (max-width: 63.99rem) {
+  .dash__main, .dash__side { display: contents; }
+  .dash__block[data-slot='now'] { order: 1; }
+  .dash__block[data-slot='hours'] { order: 2; }
+  .dash__block[data-slot='feast'] { order: 3; }
+  .dash__block[data-slot='psalms'] { order: 4; }
+  .dash__block[data-slot='recent'] { order: 5; }
+}
 @media (min-width: 64rem) {
   .dash {
     grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);

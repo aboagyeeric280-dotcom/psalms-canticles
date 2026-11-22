@@ -158,12 +158,24 @@ export function saveObserved(day: string, name: string | null): Record<string, s
 /* ------------------------------------------------------------- bookmarks */
 export interface Recent { route: string; title: string; at: number }
 
+/** Whether a route opens a text to pray from, rather than a page of the app
+    (the calendar, the psalter's chooser, settings-like screens). Only these
+    belong under "Recently prayed". */
+export function isPrayerRoute(route: string): boolean {
+  const [head, arg] = route.replace(/^#\/?/, '').split('/');
+  if (head === 'office' || head === 'readings' || head === 'canticle' || head === 'feasts') return !!arg;
+  return ['compline', 'invitatory', 'te-deum', 'midday-hymns', 'dominican', 'prayers'].includes(head);
+}
+
 export function loadRecent(): Recent[] {
-  try { return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); } catch { return []; }
+  try {
+    const list: Recent[] = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+    return Array.isArray(list) ? list.filter(r => r && isPrayerRoute(r.route)) : [];
+  } catch { return []; }
 }
 
 export function pushRecent(route: string, title: string) {
-  if (!route || route === '#/') return;
+  if (!route || !isPrayerRoute(route)) return;
   const list = loadRecent().filter(r => r.route !== route);
   list.unshift({ route, title, at: Date.now() });
   save(RECENT_KEY, list.slice(0, 8));

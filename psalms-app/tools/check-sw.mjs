@@ -8,6 +8,10 @@ import path from 'node:path';
 import vm from 'node:vm';
 
 const DIST = path.resolve('dist');
+if (!fs.existsSync(path.join(DIST, 'sw.js'))) {
+  console.error('check:sw tests the built service worker, and there is no build yet.\nRun `npm run build` first, then `npm run check:all`.');
+  process.exit(1);
+}
 const code = fs.readFileSync(path.join(DIST, 'sw.js'), 'utf8');
 
 /* ------------------------------------------------------------ stub world */

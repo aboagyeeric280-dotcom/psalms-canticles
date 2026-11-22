@@ -294,7 +294,7 @@ export default function App() {
       <div className="app__body">
         <a className="skip" href="#main">Skip to the text</a>
         <Header
-          title={head ? title : 'Today’s Prayer'}
+          title={head ? title : 'Today’s Office'}
           kicker={kicker}
           canGoBack={!!head}
           progress={head ? progress : undefined}
@@ -313,10 +313,7 @@ export default function App() {
       {!head && (
         <footer className="footer shell">
           Daily Psalms and Canticles · Dominican Publications, Box 44, Yaba, Lagos<br />
-          Province of St Joseph the Worker — Nigeria &amp; Ghana<br />
-          <button className="btn btn--ghost" style={{ marginTop: '.7rem' }} onClick={() => go('#/about')}>
-            How to use this book
-          </button>
+          Province of St Joseph the Worker — Nigeria &amp; Ghana
         </footer>
       )}
 

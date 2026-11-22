@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { BUNDLED_IDS } from './bundled';
 
 /* The backup and transfer screen, driven the way a reader drives it.
  *
@@ -37,16 +38,16 @@ const MINE = {
 };
 
 async function open(page: Page, opts: { legacy?: boolean; mine?: boolean } = {}) {
-  await page.addInitScript(([legacy, mine, legacyKey, storeKey, raw, entry]) => {
+  await page.addInitScript(([legacy, mine, legacyKey, storeKey, raw, entry, bundled]) => {
     try {
       if (legacy) localStorage.setItem(legacyKey as string, raw as string);
       if (mine) {
         localStorage.setItem(storeKey as string, JSON.stringify({
-          schemaVersion: 4, entries: [entry], meta: { createdAt: 'x' },
+          schemaVersion: 4, entries: [entry], meta: { createdAt: 'x', dismissedPublished: bundled },
         }));
       }
     } catch { /* private mode */ }
-  }, [opts.legacy ?? false, opts.mine ?? false, LEGACY_KEY, STORE_KEY, LEGACY, MINE]);
+  }, [opts.legacy ?? false, opts.mine ?? false, LEGACY_KEY, STORE_KEY, LEGACY, MINE, BUNDLED_IDS] as const);
   await page.goto('./#/missing/backup');
   await expect(page.getByRole('heading', { name: 'Material from the older app' })).toBeVisible();
 }

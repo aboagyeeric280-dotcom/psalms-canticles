@@ -1,3 +1,28 @@
+/* Local storage access for missing-parts material.
+ *
+ * ── D8: THE LEGACY KEY IS READ-ONLY ─────────────────────────────────────────
+ * `the-missing-parts-entries-v1` belongs to the separate Missing Parts app,
+ * which shares this origin. This module READS it and nothing else. There is no
+ * code path anywhere in this tree that writes it, clears it or removes it —
+ * migration copies, it never moves. A test asserts this, so that the legacy
+ * app remains a working rollback indefinitely.
+ * ───────────────────────────────────────────────────────────────────────────
+ *
+ * ── BUNDLED ("published") ENTRIES ───────────────────────────────────────────
+ * `publishedEntries.json` ships with the app and is merged in on every load.
+ * It is never written to the device as-is, so a new bundle always wins over
+ * an old copy. But the reader's own changes must win over the bundle:
+ *   - a bundled entry the reader edits, reviews or acknowledges is saved as
+ *     their own (same id, origin 'personal'), and from then on the bundled
+ *     copy with that id is skipped;
+ *   - a bundled entry the reader deletes is remembered in
+ *     `meta.dismissedPublished`, so it does not come back on the next load.
+ * ───────────────────────────────────────────────────────────────────────────
+ *
+ * Preferences are not handled here: the app already has its own in
+ * `src/utils/storage.ts` under the `dpc.` prefix, and this feature adds none.
+ */
+
 import { migrateStore, CURRENT_SCHEMA_VERSION, type MigrationReport } from './migrate';
 import type { StoreFile, Entry } from './types';
 import publishedEntriesData from './publishedEntries.json';
@@ -7,6 +32,7 @@ export const LEGACY_STORAGE_KEY = 'the-missing-parts-entries-v1';
 export const QUARANTINE_PREFIX = 'dpc.missing-parts.unreadable-';
 
 const PUBLISHED_ENTRIES: Entry[] = publishedEntriesData as Entry[];
+const PUBLISHED_BY_ID = new Map(PUBLISHED_ENTRIES.map((e) => [e.id, JSON.stringify(e)]));
 
 export interface LoadResult {
   file: StoreFile;
@@ -54,11 +80,29 @@ function quarantine(store: Storage, raw: string): string | undefined {
   }
 }
 
-/** Merge published entries, skipping any whose id already exists in personal entries. */
-function mergePublished(personal: Entry[]): Entry[] {
-  const personalIds = new Set(personal.map((e) => e.id));
-  const newPublished = PUBLISHED_ENTRIES.filter((e) => !personalIds.has(e.id));
-  return [...personal, ...newPublished];
+/** Merge bundled entries, skipping any the reader has made their own or deleted. */
+function mergePublished(personal: Entry[], dismissed: readonly string[] = []): Entry[] {
+  const skip = new Set([...personal.map((e) => e.id), ...dismissed]);
+  return [...personal, ...PUBLISHED_ENTRIES.filter((e) => !skip.has(e.id))];
+}
+
+/** What of a file in memory belongs on the device. See the note at the top. */
+export function personalPart(file: StoreFile): StoreFile {
+  const present = new Set(file.entries.map((e) => e.id));
+  const dismissed = new Set(file.meta.dismissedPublished ?? []);
+  for (const id of PUBLISHED_BY_ID.keys()) if (!present.has(id)) dismissed.add(id);
+
+  const entries: Entry[] = [];
+  for (const entry of file.entries) {
+    if (entry.origin !== 'published') { entries.push(entry); continue; }
+    const bundled = PUBLISHED_BY_ID.get(entry.id);
+    if (bundled !== undefined && bundled === JSON.stringify(entry)) continue; // untouched
+    entries.push({ ...entry, origin: 'personal' }); // changed by the reader: theirs now
+  }
+  const meta = { ...file.meta };
+  if (dismissed.size) meta.dismissedPublished = [...dismissed].sort();
+  else delete meta.dismissedPublished;
+  return { ...file, entries, meta };
 }
 
 export function loadStore(): LoadResult {
@@ -84,7 +128,7 @@ export function loadStore(): LoadResult {
   }
 
   const { file, report } = migrateStore(parsed);
-  file.entries = mergePublished(file.entries);
+  file.entries = mergePublished(file.entries, file.meta.dismissedPublished);
   return { file, report, available: true };
 }
 
@@ -92,12 +136,7 @@ export function saveStore(file: StoreFile): { ok: boolean; error?: string } {
   const store = storage();
   if (!store) return { ok: false, error: 'This browser is not allowing the app to save data.' };
   try {
-    // Never persist published entries to localStorage — they come from the bundle.
-    const personal: StoreFile = {
-      ...file,
-      entries: file.entries.filter((e) => e.origin !== 'published'),
-    };
-    store.setItem(STORAGE_KEY, JSON.stringify(personal));
+    store.setItem(STORAGE_KEY, JSON.stringify(personalPart(file)));
     return { ok: true };
   } catch (error) {
     const message =

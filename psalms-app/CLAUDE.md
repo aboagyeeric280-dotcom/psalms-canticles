@@ -67,9 +67,15 @@ containing 440 printed pages transcribed from the official source.
   use it, note that PowerShell `Compress-Archive` must never be used — it writes
   Windows backslash separators that break Linux hosts.)
 - **Preserve `base: './'` in `vite.config.ts`** so asset paths stay relative.
-- **Test suites:** `npm run check:all` runs all 7 suites — calendar, sanctoral,
+- **Test suites:** `npm run check:all` runs all 7 check suites — calendar, sanctoral,
   office routing, service worker caching, full-text search, Universalis links,
-  and canticle fidelity.
+  and canticle fidelity. `check:sw` tests the built worker, so run `npm run build`
+  first. `npm test` runs the Vitest unit suites (the reader's own material: data
+  core, calendar adapter, migration engine, screens). CI runs all three.
+- **Bundled entries:** `src/missingParts/data/publishedEntries.json` ships with the
+  app and is merged in on load. A reader's edit, review or deletion of one is kept
+  on the device (`missingParts/data/storage.ts` explains how); never filter
+  `origin: 'published'` entries out on save without that.
 
 ## 5. Key Paths & Commands
 
