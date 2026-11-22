@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { BUNDLED_IDS } from './bundled';
 
 /* Seed the reader's own material directly, so these checks are about the
    three screens rather than about re-typing four sections each time. */
@@ -36,13 +37,13 @@ const ENTRIES = [
 ];
 
 async function seeded(page: Page, route = '#/missing') {
-  await page.addInitScript((entries) => {
+  await page.addInitScript(([entries, dismissedPublished]) => {
     try {
       localStorage.setItem('dpc.missing-parts.v1', JSON.stringify({
-        schemaVersion: 4, entries, meta: { createdAt: 'x' },
+        schemaVersion: 4, entries, meta: { createdAt: 'x', dismissedPublished },
       }));
     } catch { /* private mode */ }
-  }, ENTRIES);
+  }, [ENTRIES, BUNDLED_IDS] as const);
   await page.goto(`./${route}`);
 }
 

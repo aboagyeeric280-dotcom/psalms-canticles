@@ -231,6 +231,8 @@ export interface StoreMeta {
   createdAt: string;
   lastExportAt?: string;
   lastMigratedAt?: string;
+  /** Ids of bundled entries the reader deleted, so they stay deleted. */
+  dismissedPublished?: string[];
 }
 
 /**
