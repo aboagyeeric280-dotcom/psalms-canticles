@@ -266,12 +266,13 @@ three prayer-book styles across Light, Sepia and Dark and both finishes.
 
 ---
 
-**F. Bundled missing-parts material (added 22 Nov 2026).**
-`psalms-app/src/missingParts/data/publishedEntries.json` now ships readings,
-responsories, intercessions and prayers for 22–23 September, each flagged
-`needsReview` with the note that it was scaffolded from Universalis. That sits
-against the decision in §1. It is the owner's call; until the entries are
-rewritten or removed they are deployed publicly with the app.
+**F. Bundled missing-parts material — removed 22 Nov 2026.**
+`psalms-app/src/missingParts/data/publishedEntries.json` had shipped readings,
+responsories, intercessions and prayers for 22–23 September, scaffolded from
+Universalis. That broke the decision in §1, so the file is now an empty list.
+The mechanism stays: anything added there must be the province's own wording.
+Note that the `seed-missing-parts` skill writes this kind of content into the
+repository; only use it with texts the province holds the rights to.
 
 ### Changes on 22 November 2026
 
